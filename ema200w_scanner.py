@@ -27,6 +27,7 @@ import argparse
 import datetime as dt
 import os
 import sys
+import time
 import warnings
 
 import numpy as np
@@ -117,22 +118,26 @@ def evaluate(daily: pd.DataFrame, *, len_w=200, len_d=200, band_pct=3.0,
 # --------------------------------------------------------------------------- #
 # Universe helpers
 # --------------------------------------------------------------------------- #
-def load_universe(name: str) -> list[str]:
+def _tables(url: str) -> list[pd.DataFrame]:
     import requests
-    headers = {"User-Agent": "Mozilla/5.0"}
+    from io import StringIO
+    r = requests.get(url, headers={"User-Agent": "Mozilla/5.0 (ema200w-scanner)"}, timeout=30)
+    r.raise_for_status()
+    return pd.read_html(StringIO(r.text))
+
+
+def load_universe(name: str) -> list[str]:
     if name == "sp500":
-        url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
-        tbl = pd.read_html(requests.get(url, headers=headers).text)[0]
-        syms = tbl["Symbol"].tolist()
+        tables = _tables("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies")
+        tbl = next(t for t in tables if "Symbol" in t.columns)
+        syms = tbl["Symbol"].astype(str).tolist()
     elif name == "nasdaq100":
-        url = "https://en.wikipedia.org/wiki/Nasdaq-100"
-        tables = pd.read_html(requests.get(url, headers=headers).text)
+        tables = _tables("https://en.wikipedia.org/wiki/Nasdaq-100")
         tbl = next(t for t in tables if "Ticker" in t.columns or "Symbol" in t.columns)
         col = "Ticker" if "Ticker" in tbl.columns else "Symbol"
-        syms = tbl[col].tolist()
+        syms = tbl[col].astype(str).tolist()
     elif name == "ftse100":
-        url = "https://en.wikipedia.org/wiki/FTSE_100_Index"
-        tables = pd.read_html(requests.get(url, headers=headers).text)
+        tables = _tables("https://en.wikipedia.org/wiki/FTSE_100_Index")
         tbl = next(t for t in tables if "Ticker" in t.columns or "EPIC" in t.columns)
         col = "Ticker" if "Ticker" in tbl.columns else "EPIC"
         syms = [s.replace(".", "") + ".L" for s in tbl[col].astype(str)]
@@ -158,8 +163,16 @@ def fetch_daily(tickers: list[str], years: int) -> dict[str, pd.DataFrame]:
         batch = tickers[i:i + chunk]
         # auto_adjust=False -> Close is split-adjusted but not dividend-adjusted,
         # which is what TradingView shows by default.
-        data = yf.download(batch, period=f"{years}y", interval="1d", group_by="ticker",
-                           auto_adjust=False, threads=True, progress=False)
+        data = None
+        for attempt in range(3):
+            data = yf.download(batch, period=f"{years}y", interval="1d", group_by="ticker",
+                               auto_adjust=False, threads=True, progress=False)
+            if data is not None and len(data):
+                break
+            print(f"  empty download for batch {i // chunk + 1}, retrying…", file=sys.stderr)
+            time.sleep(10 * (attempt + 1))
+        if data is None or not len(data):
+            continue
         for t in batch:
             try:
                 df = data[t] if len(batch) > 1 else data
@@ -247,8 +260,9 @@ def main():
 
     res = pd.DataFrame(rows)
     if res.empty:
-        print("No symbols evaluated (not enough history?)")
-        return
+        print("ERROR: no symbols evaluated — data download returned nothing "
+              "(Yahoo rate limit?) or history too short.", file=sys.stderr)
+        sys.exit(2)
     res.to_csv(args.out, index=False)
 
     hits = res[(res["weeks_since_signal"].notna()) & (res["weeks_since_signal"] <= args.recent)]
