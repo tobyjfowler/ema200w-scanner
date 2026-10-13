@@ -1,0 +1,60 @@
+name: 200W EMA scan
+
+on:
+  schedule:
+    # Fridays 22:07 UTC = 23:07 UK (BST) / 22:07 UK (GMT) — ~2h after US close.
+    - cron: "7 22 * * 5"
+  workflow_dispatch:
+    inputs:
+      universe:
+        description: "Which stocks to scan"
+        type: choice
+        default: sp500
+        options: [sp500, nasdaq100, ftse100]
+      mode:
+        description: "Entry mode"
+        type: choice
+        default: touch
+        options: [touch, reclaim]
+      recent:
+        description: "Report signals from the last N weeks"
+        default: "4"
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      UNIVERSE: ${{ inputs.universe || 'sp500' }}
+      MODE: ${{ inputs.mode || 'touch' }}
+      RECENT: ${{ inputs.recent || '4' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run scan
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python ema200w_scanner.py \
+            --universe "$UNIVERSE" \
+            --mode "$MODE" \
+            --recent "$RECENT" \
+            --in-band \
+            --push \
+            --out "scan_${UNIVERSE}.csv"
+
+      - name: Save full results
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-results-${{ env.UNIVERSE }}
+          path: scan_*.csv
+          retention-days: 30
