@@ -48,6 +48,7 @@ h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
 .tab:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
 section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
 h2 { font-size: 14px; margin: 0 0 10px; color: var(--ink-2); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+tfoot td { border-bottom: 0; padding-top: 10px; } .btn.more { width: 100%; }
 h2 small { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--muted); margin-left: 8px; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .tile { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
@@ -126,7 +127,7 @@ svg.spark { display: block; } .spark .c { fill: none; stroke: var(--ink); stroke
       <div class="tablewrap"><table id="sigTable"></table></div>
     </section>
     <section>
-      <h2>Approaching the band <small>regime on, sorted by distance above band top</small></h2>
+      <h2>Approaching the band <small>regime on, closest to the band first</small></h2>
       <div class="tablewrap"><table id="appTable"></table></div>
     </section>
   </div>
@@ -290,23 +291,28 @@ const statusChip = s => status(s) ? `<span class="chip st">${esc(status(s))}</sp
 const symCell = s => `<td class="l"><span class="sym">${esc(s.symbol)}</span>${statusChip(s)}<div class="nm">${esc(s.name)}</div></td>`;
 const uniShort = u => ({sp500: 'S&P', nasdaq100: 'NDX', ftse100: 'FTSE'})[u] || u;
 
+const SHOW = 10, expanded = {};
+function collapsible(t, key, rows, head, rowFn) {
+  const open = !!expanded[key], shown = open ? rows : rows.slice(0, SHOW);
+  t.innerHTML = head + '<tbody>' + shown.map(rowFn).join('') + '</tbody>' +
+    (rows.length > SHOW ? `<tfoot><tr><td colspan="9" class="l"><button class="btn more" data-key="${key}">${open ? '▲ Show fewer' : `▼ Show all ${rows.length}`}</button></td></tr></tfoot>` : '');
+  t.onclick = e => { const b = e.target.closest('.more'); if (b) { expanded[b.dataset.key] = !expanded[b.dataset.key]; render(); return; } rowClick(e); };
+}
 function renderSignals() {
   const S = stocks().filter(s => s.weeks_since_signal != null && s.weeks_since_signal <= 4)
     .sort((a, b) => a.weeks_since_signal - b.weeks_since_signal || a.pct_from_200w - b.pct_from_200w);
   const t = $('#sigTable');
   if (!S.length) { t.innerHTML = '<tr><td class="empty l">No signals in the last 4 weeks.</td></tr>'; return; }
-  t.innerHTML = `<thead><tr><th class="l">Stock</th><th>When</th><th>% from 200W</th><th>Low tag</th><th>Chart</th></tr></thead><tbody>` +
-    S.map(s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${s.weeks_since_signal ? s.weeks_since_signal + 'w ago' : 'this week'} ${uniChips(s)}</td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}</td><td>${fmt(s.low_pct_from_200w)}</td><td>${spark(s, 100, 28)}</td></tr>`).join('') + '</tbody>';
-  t.onclick = rowClick;
+  collapsible(t, 'sig', S, `<thead><tr><th class="l">Stock</th><th>When</th><th>% from 200W</th><th>Low tag</th><th>Chart</th></tr></thead>`,
+    s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${s.weeks_since_signal ? s.weeks_since_signal + 'w ago' : 'this week'} ${uniChips(s)}</td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}</td><td>${fmt(s.low_pct_from_200w)}</td><td>${spark(s, 100, 28)}</td></tr>`);
 }
 function renderApproach() {
   const S = stocks().filter(s => s.regime_on && !s.in_band && s.pct_to_band > 0 && !(s.weeks_since_signal != null && s.weeks_since_signal <= 4))
-    .sort((a, b) => a.pct_to_band - b.pct_to_band).slice(0, 20);
+    .sort((a, b) => a.pct_to_band - b.pct_to_band).slice(0, 100);
   const t = $('#appTable');
   if (!S.length) { t.innerHTML = '<tr><td class="empty l">Nothing approaching.</td></tr>'; return; }
-  t.innerHTML = `<thead><tr><th class="l">Stock</th><th>Above band</th><th>4w</th><th>12w</th><th>Chart</th></tr></thead><tbody>` +
-    S.map(s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${fmt(s.pct_to_band, 1, false)} ${uniChips(s)}</td><td class="${cls(s.ret_4w)}">${fmt(s.ret_4w)}</td><td class="${cls(s.ret_12w)}">${fmt(s.ret_12w)}</td><td>${spark(s, 100, 28)}</td></tr>`).join('') + '</tbody>';
-  t.onclick = rowClick;
+  collapsible(t, 'app', S, `<thead><tr><th class="l">Stock</th><th>Above band</th><th>4w</th><th>12w</th><th>Chart</th></tr></thead>`,
+    s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${fmt(s.pct_to_band, 1, false)} ${uniChips(s)}</td><td class="${cls(s.ret_4w)}">${fmt(s.ret_4w)}</td><td class="${cls(s.ret_12w)}">${fmt(s.ret_12w)}</td><td>${spark(s, 100, 28)}</td></tr>`);
 }
 
 const COLS = [
