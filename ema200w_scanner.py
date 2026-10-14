@@ -159,11 +159,27 @@ def _constituents(url: str, ticker_names=("ticker", "symbol", "epic")) -> tuple[
     return best
 
 
+# candidate pages per universe, tried in order
 _UNIVERSE_URL = {
-    "sp500": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
-    "nasdaq100": "https://en.wikipedia.org/wiki/Nasdaq-100",
-    "ftse100": "https://en.wikipedia.org/wiki/FTSE_100_Index",
+    "sp500": ["https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
+              "https://www.slickcharts.com/sp500"],
+    "nasdaq100": ["https://en.wikipedia.org/wiki/List_of_Nasdaq-100_companies",
+                  "https://en.wikipedia.org/wiki/Nasdaq-100",
+                  "https://www.slickcharts.com/nasdaq100"],
+    "ftse100": ["https://en.wikipedia.org/wiki/FTSE_100_Index",
+                "https://en.wikipedia.org/wiki/List_of_FTSE_100_companies"],
 }
+
+
+def _constituents_any(name: str) -> tuple[pd.DataFrame, str]:
+    errs = []
+    for url in _UNIVERSE_URL[name]:
+        try:
+            return _constituents(url)
+        except Exception as e:
+            errs.append(f"{url}: {e}")
+            print(f"  {name}: {url} -> {str(e)[:120]}", file=sys.stderr)
+    raise RuntimeError("; ".join(errs))
 
 
 def _yahoo(sym: str, name: str) -> str:
@@ -176,14 +192,14 @@ def _yahoo(sym: str, name: str) -> str:
 def load_universe(name: str) -> list[str]:
     if name not in _UNIVERSE_URL:
         raise ValueError(f"unknown universe {name}")
-    tbl, col = _constituents(_UNIVERSE_URL[name])
+    tbl, col = _constituents_any(name)
     return sorted({_yahoo(s, name) for s in tbl[col].dropna().astype(str) if s.strip()})
 
 
 def load_universe_meta(name: str) -> dict[str, dict]:
     """symbol -> {name, sector} from the same table. Best effort — never fails the scan."""
     try:
-        tbl, col = _constituents(_UNIVERSE_URL[name])
+        tbl, col = _constituents_any(name)
         ncol = _find_col(tbl, "security", "company", "name")
         scol = _find_col(tbl, "sector", "industry")
         return {_yahoo(r[col], name): {"name": str(r[ncol]) if ncol else "", "sector": str(r[scol]) if scol else ""}
