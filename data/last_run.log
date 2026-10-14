@@ -6,16 +6,14 @@
   fetched 500/503
   fetched 503/503
 [sp500] data for 503
-Traceback (most recent call last):
-  File "/home/runner/work/ema200w-scanner/ema200w-scanner/build_dashboard.py", line 231, in <module>
-    main()
-  File "/home/runner/work/ema200w-scanner/ema200w-scanner/build_dashboard.py", line 152, in main
-    stocks, signals = scan_universe(u, args)
-                      ^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/runner/work/ema200w-scanner/ema200w-scanner/build_dashboard.py", line 46, in scan_universe
-    tickers = load_universe(name)
-              ^^^^^^^^^^^^^^^^^^^
-  File "/home/runner/work/ema200w-scanner/ema200w-scanner/ema200w_scanner.py", line 137, in load_universe
-    tbl = next(t for t in tables if "Ticker" in t.columns or "Symbol" in t.columns)
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-StopIteration
+[nasdaq100] could not load constituents: no constituents table found at https://en.wikipedia.org/wiki/Nasdaq-100
+[nasdaq100] WARNING: nothing scanned, skipping
+[ftse100] 100 symbols
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: BTA.L"}}}
+$BTA.L: No data found, symbol may be delisted
+
+1 Failed download:
+['BTA.L']: No data found, symbol may be delisted
+  fetched 100/100
+[ftse100] data for 99
+wrote 590 stocks, 3230 historic signals, 0 new live signals
