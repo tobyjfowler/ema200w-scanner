@@ -32,24 +32,57 @@ CLUSTER_GAP = 8            # weeks without a signal before a new one counts as a
 UNIVERSE_LABEL = {"sp500": "S&P 500", "nasdaq100": "Nasdaq 100", "ftse100": "FTSE 100"}
 
 
-def tv_symbol(sym: str) -> str:
-    """Best-effort TradingView symbol for a Yahoo ticker."""
+# Yahoo exchange code -> TradingView exchange prefix
+_TV_EXCHANGE = {"NMS": "NASDAQ", "NGM": "NASDAQ", "NCM": "NASDAQ", "NAS": "NASDAQ",
+                "NYQ": "NYSE", "ASE": "AMEX", "PCX": "AMEX", "BTS": "CBOE", "LSE": "LSE"}
+_EXCH_PATH = os.path.join(DATA_DIR, "exchanges.json")
+
+
+def load_exchanges(symbols: list[str]) -> dict[str, str]:
+    """Yahoo exchange code per symbol, cached in data/exchanges.json; only new symbols are looked up."""
+    import yfinance as yf
+    from concurrent.futures import ThreadPoolExecutor
+    cache = json.load(open(_EXCH_PATH)) if os.path.exists(_EXCH_PATH) else {}
+    todo = [s for s in symbols if s not in cache]
+    if todo:
+        print(f"looking up exchange for {len(todo)} new symbols", file=sys.stderr)
+
+        def one(sym):
+            try:
+                return sym, str(yf.Ticker(sym).fast_info["exchange"])
+            except Exception:
+                return sym, ""
+        with ThreadPoolExecutor(max_workers=6) as ex:
+            for sym, code in ex.map(one, todo):
+                if code:
+                    cache[sym] = code
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with open(_EXCH_PATH, "w") as f:
+            json.dump(cache, f, indent=0, sort_keys=True)
+    return cache
+
+
+def tv_symbol(sym: str, exch: str = "") -> str:
+    """TradingView symbol (EXCHANGE:TICKER) for a Yahoo ticker."""
     if sym.endswith(".L"):
         return "LSE:" + sym[:-2]
-    return sym.replace("-", ".")
+    pref = _TV_EXCHANGE.get(exch, "")
+    base = sym.replace("-", ".")
+    return f"{pref}:{base}" if pref else base
 
 
 def r2(x):
     return None if x is None or (isinstance(x, float) and np.isnan(x)) else round(float(x), 2)
 
 
-def scan_universe(name: str, args) -> tuple[list[dict], list[dict]]:
+def scan_universe(name: str, args, exchanges: dict[str, str]) -> tuple[list[dict], list[dict]]:
     try:
         tickers = load_universe(name)
     except Exception as e:
         print(f"[{name}] could not load constituents: {e}", file=sys.stderr)
         return [], []
     meta = load_universe_meta(name)
+    exchanges.update(load_exchanges([t for t in tickers if not t.endswith(".L")]))
     print(f"[{name}] {len(tickers)} symbols", file=sys.stderr)
     data = fetch_daily(tickers, args.years)
     print(f"[{name}] data for {len(data)}", file=sys.stderr)
@@ -75,7 +108,7 @@ def scan_universe(name: str, args) -> tuple[list[dict], list[dict]]:
 
         stocks.append({
             "symbol": sym,
-            "tv": tv_symbol(sym),
+            "tv": tv_symbol(sym, exchanges.get(sym, "")),
             "name": m.get("name", ""),
             "sector": m.get("sector", ""),
             "universe": name,
@@ -159,9 +192,9 @@ def main():
     history = json.load(open(hist_path)) if os.path.exists(hist_path) else {"runs": [], "live_signals": {}}
 
     now = dt.datetime.now(dt.timezone.utc)
-    all_stocks, all_signals, per_universe = [], [], {}
+    all_stocks, all_signals, per_universe, exchanges = [], [], {}, {}
     for u in [x.strip() for x in args.universes.split(",") if x.strip()]:
-        stocks, signals = scan_universe(u, args)
+        stocks, signals = scan_universe(u, args, exchanges)
         if not stocks:
             print(f"[{u}] WARNING: nothing scanned, skipping", file=sys.stderr)
             continue
