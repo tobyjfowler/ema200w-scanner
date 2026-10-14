@@ -6,10 +6,6 @@
   fetched 500/503
   fetched 503/503
 [sp500] data for 503
-  nasdaq100: https://en.wikipedia.org/wiki/List_of_Nasdaq-100_companies -> 404 Client Error: Not Found for url: https://en.wikipedia.org/wiki/List_of_Nasdaq-100_companies
-  nasdaq100: https://en.wikipedia.org/wiki/Nasdaq-100 -> no constituents table found at https://en.wikipedia.org/wiki/Nasdaq-100. Tables seen: 41 rows: ['Year', 'Closing level',
-  nasdaq100: https://en.wikipedia.org/wiki/List_of_Nasdaq-100_companies -> 404 Client Error: Not Found for url: https://en.wikipedia.org/wiki/List_of_Nasdaq-100_companies
-  nasdaq100: https://en.wikipedia.org/wiki/Nasdaq-100 -> no constituents table found at https://en.wikipedia.org/wiki/Nasdaq-100. Tables seen: 41 rows: ['Year', 'Closing level',
 [nasdaq100] 101 symbols
   fetched 100/101
   fetched 101/101
@@ -22,4 +18,4 @@ $BTA.L: No data found, symbol may be delisted
 ['BTA.L']: No data found, symbol may be delisted
   fetched 100/100
 [ftse100] data for 99
-wrote 682 stocks, 3727 historic signals, 1 new live signals
+wrote 682 stocks, 3727 historic signals, 0 new live signals
