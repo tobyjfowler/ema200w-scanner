@@ -49,19 +49,12 @@ jobs:
             python build_dashboard.py --push 2>&1 | tee data/last_run.log
           fi
 
-      - name: Save log on failure
-        if: failure()
+      - name: Commit updated data (and the run log)
+        if: always()
         run: |
           git config user.name "scanner-bot"
           git config user.email "scanner-bot@users.noreply.github.com"
           git add -f data/last_run.log
-          git commit -m "log: failed run $(date -u +%Y-%m-%dT%H:%M)" || true
-          git push || true
-
-      - name: Commit updated data
-        run: |
-          git config user.name "scanner-bot"
-          git config user.email "scanner-bot@users.noreply.github.com"
           git add data/latest.json data/history.json
           git diff --cached --quiet || git commit -m "data: scan $(date -u +%Y-%m-%d)"
           git push

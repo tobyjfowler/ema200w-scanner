@@ -161,7 +161,7 @@ svg.spark { display: block; } .spark .c { fill: none; stroke: var(--ink); stroke
     <div class="stats" id="hStats"></div>
     <div class="tablewrap"><table id="histTable"></table></div>
     <div class="pager"><span id="hPageInfo"></span><button id="hPrev">‹</button><button id="hNext">›</button></div>
-    <p class="help">Historic signals are computed on today's index membership (survivorship bias: names that fell out of the index aren't included). "Live" signals are ones the dashboard logged as they happened — that's the clean out-of-sample record.</p>
+    <p class="help">Each row is the first signal of a cluster (touch &amp; hold re-fires while price sits in the band; "Re-fires" counts those in the following 8 weeks). Historic signals are computed on today's index membership (survivorship bias: names that fell out of the index aren't included). "Live" signals are ones the dashboard logged as they happened — that's the clean out-of-sample record.</p>
   </section>
 </div>
 
@@ -330,7 +330,7 @@ function renderAll() {
 const cmp = (a, b) => a == null ? 1 : b == null ? -1 : typeof a === 'string' ? a.localeCompare(b) : a - b;
 
 /* ---------- history ---------- */
-const HCOLS = [['symbol', 'Stock', 'l'], ['date', 'Date'], ['mode', 'Mode', 'l'], ['price', 'Entry'], ['fwd_4w', '+4w'], ['fwd_12w', '+12w'], ['fwd_26w', '+26w'], ['mdd_26w', 'Max DD 26w'], ['fwd_now', 'To now']];
+const HCOLS = [['symbol', 'Stock', 'l'], ['date', 'Date'], ['mode', 'Mode', 'l'], ['repeats', 'Re-fires'], ['price', 'Entry'], ['fwd_4w', '+4w'], ['fwd_12w', '+12w'], ['fwd_26w', '+26w'], ['mdd_26w', 'Max DD 26w'], ['fwd_now', 'To now']];
 function renderHist() {
   const mode = $('#hMode').value, live = $('#hLive').checked, mature = $('#hMature').checked;
   const liveKeys = new Set(Object.values(H.live_signals).map(v => `${v.symbol}|${v.week}|${v.mode}`));
@@ -348,7 +348,7 @@ function renderHist() {
   $('#hPageInfo').textContent = `page ${hPage + 1} of ${pages}`;
   const t = $('#histTable');
   t.innerHTML = `<thead><tr>${HCOLS.map(([k, l, c]) => `<th class="${c || ''}" data-k="${k}" ${k === hSortKey ? `data-sorted="${hSortDir > 0 ? 'asc' : 'desc'}"` : ''}>${l}</th>`).join('')}</tr></thead><tbody>` +
-    S.slice(hPage * PAGE, (hPage + 1) * PAGE).map(r => `<tr data-sym="${r.symbol}"><td class="l"><span class="sym">${esc(r.symbol)}</span> <span class="chip">${uniShort(r.universe)}</span>${liveKeys.has(`${r.symbol}|${r.date}|${r.mode}`) ? '<span class="chip sig">live</span>' : ''}</td><td>${r.date}</td><td class="l">${r.mode}</td><td>${r.price}</td>` +
+    S.slice(hPage * PAGE, (hPage + 1) * PAGE).map(r => `<tr data-sym="${r.symbol}"><td class="l"><span class="sym">${esc(r.symbol)}</span> <span class="chip">${uniShort(r.universe)}</span>${liveKeys.has(`${r.symbol}|${r.date}|${r.mode}`) ? '<span class="chip sig">live</span>' : ''}</td><td>${r.date}</td><td class="l">${r.mode}</td><td>${r.repeats ?? '–'}</td><td>${r.price}</td>` +
       ['fwd_4w', 'fwd_12w', 'fwd_26w', 'mdd_26w', 'fwd_now'].map(k => `<td class="${cls(r[k])}">${fmt(r[k])}</td>`).join('') + '</tr>').join('') + '</tbody>';
   t.querySelector('thead').onclick = e => { const th = e.target.closest('th'); if (!th) return; if (hSortKey === th.dataset.k) hSortDir *= -1; else { hSortKey = th.dataset.k; hSortDir = -1; } renderHist(); };
   t.querySelector('tbody').onclick = rowClick;

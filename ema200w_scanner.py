@@ -119,12 +119,18 @@ def evaluate(daily: pd.DataFrame, *, len_w=200, len_d=200, band_pct=3.0,
 # --------------------------------------------------------------------------- #
 # Universe helpers
 # --------------------------------------------------------------------------- #
+_TABLE_CACHE: dict[str, list[pd.DataFrame]] = {}
+
+
 def _tables(url: str) -> list[pd.DataFrame]:
     import requests
     from io import StringIO
-    r = requests.get(url, headers={"User-Agent": "Mozilla/5.0 (ema200w-scanner)"}, timeout=30)
+    if url in _TABLE_CACHE:
+        return _TABLE_CACHE[url]
+    r = requests.get(url, headers={"User-Agent": "ema200w-scanner/1.0 (github.com/tobyjfowler/ema200w-scanner)"}, timeout=30)
     r.raise_for_status()
     tables = pd.read_html(StringIO(r.text))
+    _TABLE_CACHE[url] = tables
     # flatten multi-level headers to plain strings
     for t in tables:
         t.columns = [" ".join(str(x) for x in c if str(x) != "nan").strip() if isinstance(c, tuple) else str(c)

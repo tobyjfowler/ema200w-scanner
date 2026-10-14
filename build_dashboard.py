@@ -27,6 +27,7 @@ DATA_DIR = "data"
 SPARK_WEEKS = 104          # weeks of close / 200W EMA kept per stock for the mini chart
 SIGNAL_LOOKBACK_W = 260    # how far back to list historic signals (5 years)
 FWD = (4, 12, 26)          # forward-return horizons in weeks
+CLUSTER_GAP = 8            # weeks without a signal before a new one counts as a fresh setup
 
 UNIVERSE_LABEL = {"sp500": "S&P 500", "nasdaq100": "Nasdaq 100", "ftse100": "FTSE 100"}
 
@@ -99,17 +100,24 @@ def scan_universe(name: str, args) -> tuple[list[dict], list[dict]]:
             "spark": spark,
         })
 
-        # historic signals with forward returns (both modes)
+        # historic signals with forward returns (both modes). Touch & hold re-fires
+        # every week price sits in the band, so collapse runs: keep the first signal
+        # of a cluster (no signal in the previous CLUSTER_GAP weeks) and count repeats.
         for mode, frame in ((args.mode, wk), ("reclaim" if args.mode == "touch" else "touch", wk_other)):
-            idx = np.where(frame["signal"].to_numpy() == 1)[0]
-            idx = idx[idx >= len(frame) - SIGNAL_LOOKBACK_W]
+            sig = frame["signal"].to_numpy()
+            idx = np.where(sig == 1)[0]
             closes = frame["Close"].to_numpy()
             for i in idx:
+                if i < len(frame) - SIGNAL_LOOKBACK_W:
+                    continue
+                if sig[max(0, i - CLUSTER_GAP):i].any():
+                    continue
+                repeats = int(sig[i + 1:i + 1 + CLUSTER_GAP].sum())
                 rec = {
                     "symbol": sym, "universe": name, "mode": mode,
                     "date": frame.index[i].strftime("%Y-%m-%d"),
                     "price": r2(closes[i]), "ema200w": r2(frame["emaW"].iloc[i]),
-                    "weeks_ago": int(len(frame) - 1 - i),
+                    "weeks_ago": int(len(frame) - 1 - i), "repeats": repeats,
                 }
                 for h in FWD:
                     rec[f"fwd_{h}w"] = r2((closes[i + h] / closes[i] - 1) * 100) if i + h < len(closes) else None
