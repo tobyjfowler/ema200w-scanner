@@ -154,7 +154,8 @@ def _constituents(url: str, ticker_names=("ticker", "symbol", "epic")) -> tuple[
         if col and len(t) >= 50 and (best is None or len(t) > len(best[0])):
             best = (t, col)
     if best is None:
-        raise RuntimeError(f"no constituents table found at {url}")
+        found = "; ".join(f"{len(t)} rows: {list(t.columns)[:6]}" for t in _tables(url) if len(t) >= 20)
+        raise RuntimeError(f"no constituents table found at {url}. Tables seen: {found}")
     return best
 
 
