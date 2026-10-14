@@ -196,8 +196,12 @@ def fetch_daily(tickers: list[str], years: int) -> dict[str, pd.DataFrame]:
         # which is what TradingView shows by default.
         data = None
         for attempt in range(3):
-            data = yf.download(batch, period=f"{years}y", interval="1d", group_by="ticker",
-                               auto_adjust=False, threads=True, progress=False)
+            try:
+                data = yf.download(batch, period=f"{years}y", interval="1d", group_by="ticker",
+                                   auto_adjust=False, threads=True, progress=False)
+            except Exception as e:
+                print(f"  download error for batch {i // chunk + 1}: {e}", file=sys.stderr)
+                data = None
             if data is not None and len(data):
                 break
             print(f"  empty download for batch {i // chunk + 1}, retrying…", file=sys.stderr)
