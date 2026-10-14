@@ -209,7 +209,14 @@ function init() {
   render();
 }
 
-const stocks = () => universe === 'all' ? D.stocks : D.stocks.filter(s => s.universe === universe);
+let ALL = null;
+function dedupe() {
+  const m = new Map();
+  for (const s of D.stocks) { const k = s.symbol; if (m.has(k)) m.get(k).unis.push(s.universe); else m.set(k, Object.assign({}, s, {unis: [s.universe]})); }
+  ALL = [...m.values()];
+}
+const stocks = () => { if (!ALL) dedupe(); return universe === 'all' ? ALL : ALL.filter(s => s.unis.includes(universe)); };
+const uniChips = s => (s.unis || [s.universe]).map(u => `<span class="chip">${uniShort(u)}</span>`).join('');
 
 function render() {
   document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.u === universe));
@@ -289,7 +296,7 @@ function renderSignals() {
   const t = $('#sigTable');
   if (!S.length) { t.innerHTML = '<tr><td class="empty l">No signals in the last 4 weeks.</td></tr>'; return; }
   t.innerHTML = `<thead><tr><th class="l">Stock</th><th>When</th><th>% from 200W</th><th>Low tag</th><th>Chart</th></tr></thead><tbody>` +
-    S.map(s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${s.weeks_since_signal ? s.weeks_since_signal + 'w ago' : 'this week'} <span class="chip">${uniShort(s.universe)}</span></td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}</td><td>${fmt(s.low_pct_from_200w)}</td><td>${spark(s, 100, 28)}</td></tr>`).join('') + '</tbody>';
+    S.map(s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${s.weeks_since_signal ? s.weeks_since_signal + 'w ago' : 'this week'} ${uniChips(s)}</td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}</td><td>${fmt(s.low_pct_from_200w)}</td><td>${spark(s, 100, 28)}</td></tr>`).join('') + '</tbody>';
   t.onclick = rowClick;
 }
 function renderApproach() {
@@ -298,7 +305,7 @@ function renderApproach() {
   const t = $('#appTable');
   if (!S.length) { t.innerHTML = '<tr><td class="empty l">Nothing approaching.</td></tr>'; return; }
   t.innerHTML = `<thead><tr><th class="l">Stock</th><th>Above band</th><th>4w</th><th>12w</th><th>Chart</th></tr></thead><tbody>` +
-    S.map(s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${fmt(s.pct_to_band, 1, false)} <span class="chip">${uniShort(s.universe)}</span></td><td class="${cls(s.ret_4w)}">${fmt(s.ret_4w)}</td><td class="${cls(s.ret_12w)}">${fmt(s.ret_12w)}</td><td>${spark(s, 100, 28)}</td></tr>`).join('') + '</tbody>';
+    S.map(s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${fmt(s.pct_to_band, 1, false)} ${uniChips(s)}</td><td class="${cls(s.ret_4w)}">${fmt(s.ret_4w)}</td><td class="${cls(s.ret_12w)}">${fmt(s.ret_12w)}</td><td>${spark(s, 100, 28)}</td></tr>`).join('') + '</tbody>';
   t.onclick = rowClick;
 }
 
@@ -334,7 +341,8 @@ const HCOLS = [['symbol', 'Stock', 'l'], ['date', 'Date'], ['mode', 'Mode', 'l']
 function renderHist() {
   const mode = $('#hMode').value, live = $('#hLive').checked, mature = $('#hMature').checked;
   const liveKeys = new Set(Object.values(H.live_signals).map(v => `${v.symbol}|${v.week}|${v.mode}`));
-  let S = D.signals.filter(r => (universe === 'all' || r.universe === universe) && (!mode || r.mode === mode)
+  const seen = new Set();
+  let S = D.signals.filter(r => (universe === 'all' || r.universe === universe) && (!mode || r.mode === mode) && (universe !== 'all' || !seen.has(r.symbol + r.date + r.mode) && seen.add(r.symbol + r.date + r.mode))
     && (!live || liveKeys.has(`${r.symbol}|${r.date}|${r.mode}`)) && (!mature || r.fwd_26w != null));
   const stat = k => { const v = S.map(r => r[k]).filter(x => x != null); return v.length ? {avg: avg(v), win: 100 * v.filter(x => x > 0).length / v.length, n: v.length} : null; };
   const s4 = stat('fwd_4w'), s12 = stat('fwd_12w'), s26 = stat('fwd_26w'), dd = stat('mdd_26w');
@@ -357,11 +365,11 @@ function renderHist() {
 /* ---------- drawer ---------- */
 function rowClick(e) { const tr = e.target.closest('tr[data-sym]'); if (tr) openDrawer(tr.dataset.sym); }
 function openDrawer(sym) {
-  const s = D.stocks.find(x => x.symbol === sym); if (!s) return;
+  const s = (ALL || D.stocks).find(x => x.symbol === sym); if (!s) return;
   const n = notes[sym] || {};
   const d = $('#drawer');
   d.innerHTML = `<button class="btn close" id="dclose" aria-label="Close">✕</button>
-    <h3>${esc(s.symbol)} <span class="chip">${uniShort(s.universe)}</span></h3>
+    <h3>${esc(s.symbol)} ${uniChips(s)}</h3>
     <div class="sub">${esc(s.name)}${s.sector ? ' · ' + esc(s.sector) : ''} · <a target="_blank" rel="noopener" href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(s.tv)}&interval=W">Open weekly chart in TradingView ↗</a></div>
     <div class="legend"><span><i style="background:var(--ink)"></i>Close</span><span><i style="background:var(--s1)"></i>200W EMA</span><span><i style="background:var(--band);height:8px"></i>±${D.params.band_pct}% band</span><span><i style="background:var(--s3);height:6px;width:6px;border-radius:50%"></i>Signal</span></div>
     <svg class="big" id="bigChart"></svg>

@@ -163,9 +163,8 @@ def _constituents(url: str, ticker_names=("ticker", "symbol", "epic")) -> tuple[
 _UNIVERSE_URL = {
     "sp500": ["https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
               "https://www.slickcharts.com/sp500"],
-    "nasdaq100": ["https://en.wikipedia.org/wiki/List_of_Nasdaq-100_companies",
-                  "https://en.wikipedia.org/wiki/Nasdaq-100",
-                  "https://www.slickcharts.com/nasdaq100"],
+    "nasdaq100": ["https://www.slickcharts.com/nasdaq100",
+                  "https://en.wikipedia.org/wiki/Nasdaq-100"],
     "ftse100": ["https://en.wikipedia.org/wiki/FTSE_100_Index",
                 "https://en.wikipedia.org/wiki/List_of_FTSE_100_companies"],
 }
