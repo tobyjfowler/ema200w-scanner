@@ -1,3 +1,4 @@
+looking up exchange for 503 new symbols
 [sp500] 503 symbols
   fetched 100/503
   fetched 200/503
@@ -6,6 +7,7 @@
   fetched 500/503
   fetched 503/503
 [sp500] data for 503
+looking up exchange for 15 new symbols
 [nasdaq100] 101 symbols
   fetched 100/101
   fetched 101/101
@@ -18,4 +20,4 @@ $BTA.L: No data found, symbol may be delisted
 ['BTA.L']: No data found, symbol may be delisted
   fetched 100/100
 [ftse100] data for 99
-wrote 682 stocks, 3724 historic signals, 3 new live signals
+wrote 682 stocks, 3727 historic signals, 1 new live signals
