@@ -6,7 +6,7 @@
   fetched 500/503
   fetched 503/503
 [sp500] data for 503
-[nasdaq100] could not load constituents: no constituents table found at https://en.wikipedia.org/wiki/Nasdaq-100
+[nasdaq100] could not load constituents: no constituents table found at https://en.wikipedia.org/wiki/Nasdaq-100. Tables seen: 41 rows: ['Year', 'Closing level', 'Change in Index in Points', 'Change in Index in\xa0%']; 31 rows: ['Milestone (closing)[13]', 'Date of Record (closing)[13]', 'Trading Days[13]']; 34 rows: ['vteStock market indices', 'vteStock market indices.1']
 [nasdaq100] WARNING: nothing scanned, skipping
 [ftse100] 100 symbols
 HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: BTA.L"}}}
@@ -16,4 +16,4 @@ $BTA.L: No data found, symbol may be delisted
 ['BTA.L']: No data found, symbol may be delisted
   fetched 100/100
 [ftse100] data for 99
-wrote 590 stocks, 3230 historic signals, 0 new live signals
+wrote 590 stocks, 3227 historic signals, 0 new live signals
