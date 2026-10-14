@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>200W EMA Scanner</title>
+<meta name="description" content="Weekly scan of stocks pulling back to their 200-week EMA in an uptrend regime.">
+<style>
+:root {
+  color-scheme: light dark;
+  --page: #f9f9f7; --surface: #fcfcfb; --surface-2: #f1f1ee;
+  --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,.10);
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s7: #6250d6;
+  --good: #006300; --good-bg: rgba(12,163,12,.12);
+  --bad: #b32424; --bad-bg: rgba(208,59,59,.12);
+  --warn-bg: rgba(250,178,25,.18);
+  --band: rgba(42,120,214,.12);
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #222221;
+    --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,.10);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s7: #9085e9;
+    --good: #0ca30c; --bad: #e66767; --band: rgba(57,135,229,.14);
+  }
+}
+:root[data-theme="dark"] {
+  --page: #0d0d0d; --surface: #1a1a19; --surface-2: #222221;
+  --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,.10);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s7: #9085e9;
+  --good: #0ca30c; --bad: #e66767; --band: rgba(57,135,229,.14);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--page); color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+a { color: var(--s1); text-decoration: none; } a:hover { text-decoration: underline; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 16px; }
+header { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
+.meta { color: var(--muted); font-size: 12px; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab { border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); padding: 6px 12px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 13px; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); }
+.tab:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
+section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
+h2 { font-size: 14px; margin: 0 0 10px; color: var(--ink-2); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+h2 small { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--muted); margin-left: 8px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.tile { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
+.tile .v { font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
+.tile .l { color: var(--muted); font-size: 12px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; } .row2 > * { min-width: 0; }
+section { min-width: 0; }
+@media (max-width: 860px) { .row2 { grid-template-columns: 1fr; } }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+.controls input, .controls select { font: inherit; font-size: 13px; padding: 6px 9px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--ink); }
+.controls label { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-2); font-size: 13px; }
+.tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 8px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--grid); }
+th { color: var(--muted); font-weight: 500; font-size: 12px; cursor: pointer; user-select: none; position: sticky; top: 0; background: var(--surface); }
+th.l, td.l { text-align: left; }
+th[data-sorted="asc"]::after { content: " ▲"; font-size: 9px; } th[data-sorted="desc"]::after { content: " ▼"; font-size: 9px; }
+tbody tr { cursor: pointer; } tbody tr:hover { background: var(--surface-2); }
+.sym { font-weight: 600; } .nm { color: var(--muted); font-size: 12px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+.pos { color: var(--good); } .neg { color: var(--bad); }
+.chip { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); margin-left: 4px; vertical-align: middle; }
+.chip.sig { background: var(--good-bg); color: var(--good); } .chip.band { background: var(--warn-bg); color: var(--ink); }
+.chip.off { background: var(--bad-bg); color: var(--bad); }
+.chip.st { background: var(--s7); color: #fff; }
+svg.spark { display: block; } .spark .c { fill: none; stroke: var(--ink); stroke-width: 1.4; } .spark .e { fill: none; stroke: var(--s1); stroke-width: 1.4; }
+.spark .b { fill: var(--band); } .spark .d { fill: var(--s3); }
+.empty { color: var(--muted); padding: 14px 0; }
+.pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; color: var(--muted); font-size: 12px; margin-top: 8px; }
+.pager button, .btn { font: inherit; font-size: 12px; padding: 4px 10px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); border-radius: 6px; cursor: pointer; }
+/* drawer */
+.drawer { position: fixed; inset: 0 0 0 auto; width: min(560px, 100%); background: var(--surface); border-left: 1px solid var(--border); box-shadow: -8px 0 30px rgba(0,0,0,.25); transform: translateX(100%); transition: transform .2s; overflow-y: auto; padding: 18px; z-index: 10; }
+.drawer.open { transform: none; }
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; z-index: 9; } .scrim.open { display: block; }
+.drawer h3 { margin: 0; font-size: 20px; } .drawer .sub { color: var(--muted); margin-bottom: 12px; }
+.kv { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; margin: 12px 0; font-size: 13px; }
+.kv div span { color: var(--muted); display: block; font-size: 11px; }
+.drawer textarea, .drawer select { width: 100%; font: inherit; font-size: 13px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-2); color: var(--ink); }
+.drawer textarea { min-height: 80px; resize: vertical; }
+.close { position: absolute; top: 12px; right: 12px; }
+.big { width: 100%; height: 220px; }
+.big .c { fill: none; stroke: var(--ink); stroke-width: 1.6; } .big .e { fill: none; stroke: var(--s1); stroke-width: 1.6; }
+.big .b { fill: var(--band); } .big .d { fill: var(--s3); } .big .g { stroke: var(--grid); stroke-width: 1; } .big text { fill: var(--muted); font-size: 10px; }
+.legend { display: flex; gap: 14px; font-size: 12px; color: var(--ink-2); margin: 6px 0; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 5px; }
+.hist { width: 100%; height: 120px; } .hist path { fill: none; stroke-width: 2; } .hist .g { stroke: var(--grid); } .hist text { fill: var(--muted); font-size: 10px; }
+.tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--page); font-size: 12px; padding: 4px 8px; border-radius: 5px; display: none; z-index: 20; white-space: nowrap; }
+.theme { font-size: 12px; }
+.help { color: var(--muted); font-size: 12px; margin-top: 8px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.stats .tile .v { font-size: 18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>200W EMA Scanner</h1>
+      <div class="meta" id="meta">Loading…</div>
+    </div>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <label class="theme"><select id="theme"><option value="auto">Auto theme</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
+  </header>
+
+  <section>
+    <h2>Market breadth <small id="breadthLabel"></small></h2>
+    <div class="tiles" id="tiles"></div>
+    <div class="row2" style="margin-top:12px">
+      <div><div class="legend"><span><i style="background:var(--s1)"></i>% regime on (200D &gt; 200W)</span><span><i style="background:var(--s2)"></i>% in band</span><span><i style="background:var(--s3)"></i>% below 200W</span></div><svg class="hist" id="hist"></svg></div>
+      <div class="help" id="breadthHelp"></div>
+    </div>
+  </section>
+
+  <div class="row2">
+    <section>
+      <h2>Signals <small>last 4 weeks · click a row for detail</small></h2>
+      <div class="tablewrap"><table id="sigTable"></table></div>
+    </section>
+    <section>
+      <h2>Approaching the band <small>regime on, sorted by distance above band top</small></h2>
+      <div class="tablewrap"><table id="appTable"></table></div>
+    </section>
+  </div>
+
+  <section>
+    <h2>All stocks <small id="count"></small></h2>
+    <div class="controls">
+      <input id="q" type="search" placeholder="Search symbol or name" aria-label="Search">
+      <select id="sector" aria-label="Sector"><option value="">All sectors</option></select>
+      <select id="filt" aria-label="Filter">
+        <option value="">Everything</option>
+        <option value="sig">Signal in last 4w</option>
+        <option value="sig12">Signal in last 12w</option>
+        <option value="band">In band now</option>
+        <option value="regime">Regime on</option>
+        <option value="near">Within 10% of band</option>
+        <option value="mine">My watchlist / holdings</option>
+      </select>
+      <label><input type="checkbox" id="onlyRegime"> regime on only</label>
+    </div>
+    <div class="tablewrap"><table id="allTable"></table></div>
+    <div class="pager"><span id="pageInfo"></span><button id="prev">‹</button><button id="next">›</button></div>
+  </section>
+
+  <section>
+    <h2>Signal history &amp; outcomes <small>every signal in the last 5 years with forward returns</small></h2>
+    <div class="controls">
+      <select id="hMode"><option value="touch">Touch &amp; hold</option><option value="reclaim">Reclaim</option><option value="">Both</option></select>
+      <label><input type="checkbox" id="hLive"> live signals only (since dashboard started)</label>
+      <label><input type="checkbox" id="hMature" checked> only signals old enough for 26w result</label>
+    </div>
+    <div class="stats" id="hStats"></div>
+    <div class="tablewrap"><table id="histTable"></table></div>
+    <div class="pager"><span id="hPageInfo"></span><button id="hPrev">‹</button><button id="hNext">›</button></div>
+    <p class="help">Historic signals are computed on today's index membership (survivorship bias: names that fell out of the index aren't included). "Live" signals are ones the dashboard logged as they happened — that's the clean out-of-sample record.</p>
+  </section>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true"></aside>
+<div class="tip" id="tip"></div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const fmt = (v, d = 1, sign = true) => v == null ? '–' : (sign && v > 0 ? '+' : '') + v.toFixed(d) + '%';
+const cls = v => v == null ? '' : v >= 0 ? 'pos' : 'neg';
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const LS = 'ema200w-notes';
+let notes = {}; try { notes = JSON.parse(localStorage.getItem(LS) || '{}'); } catch {}
+const saveNotes = () => { try { localStorage.setItem(LS, JSON.stringify(notes)); } catch {} };
+try { const t = localStorage.getItem('ema200w-theme'); if (t) { $('#theme').value = t; applyTheme(t); } } catch {}
+function applyTheme(t) { if (t === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t; }
+$('#theme').onchange = e => { applyTheme(e.target.value); try { localStorage.setItem('ema200w-theme', e.target.value); } catch {} };
+
+let D, H, universe = 'all', page = 0, hPage = 0, sortKey = 'pct_from_200w', sortDir = 1, hSortKey = 'date', hSortDir = -1;
+const PAGE = 50;
+
+Promise.all([fetch('data/latest.json').then(r => r.json()), fetch('data/history.json').then(r => r.json()).catch(() => ({runs: [], live_signals: {}}))])
+  .then(([d, h]) => { D = d; H = h; init(); })
+  .catch(e => { $('#meta').textContent = 'Could not load data/latest.json — has the scan run yet? ' + e; });
+
+function init() {
+  const p = D.params;
+  $('#meta').textContent = `Updated ${D.generated.replace('T', ' ')} · ${D.stocks.length} stocks · ${p.mode === 'touch' ? 'touch & hold' : 'reclaim'}, ±${p.band_pct}% band, regime ≥${p.regime_min}w`;
+  const tabs = [['all', 'All'], ...Object.entries(D.universes).map(([k, v]) => [k, v.label])];
+  $('#tabs').innerHTML = tabs.map(([k, l]) => `<button class="tab" role="tab" data-u="${k}" aria-selected="${k === universe}">${l}</button>`).join('');
+  $('#tabs').onclick = e => { const b = e.target.closest('.tab'); if (!b) return; universe = b.dataset.u; page = 0; hPage = 0; render(); };
+  const sectors = [...new Set(D.stocks.map(s => s.sector).filter(Boolean))].sort();
+  $('#sector').innerHTML += sectors.map(s => `<option>${esc(s)}</option>`).join('');
+  ['#q', '#sector', '#filt', '#onlyRegime'].forEach(s => $(s).addEventListener('input', () => { page = 0; renderAll(); }));
+  ['#hMode', '#hLive', '#hMature'].forEach(s => $(s).addEventListener('input', () => { hPage = 0; renderHist(); }));
+  $('#prev').onclick = () => { page = Math.max(0, page - 1); renderAll(); };
+  $('#next').onclick = () => { page++; renderAll(); };
+  $('#hPrev').onclick = () => { hPage = Math.max(0, hPage - 1); renderHist(); };
+  $('#hNext').onclick = () => { hPage++; renderHist(); };
+  $('#scrim').onclick = closeDrawer;
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(renderBreadth, 150); });
+  render();
+}
+
+const stocks = () => universe === 'all' ? D.stocks : D.stocks.filter(s => s.universe === universe);
+
+function render() {
+  document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.u === universe));
+  renderBreadth(); renderSignals(); renderApproach(); renderAll(); renderHist();
+}
+
+/* ---------- breadth ---------- */
+function renderBreadth() {
+  const S = stocks(), n = S.length;
+  const pct = f => n ? Math.round(1000 * S.filter(f).length / n) / 10 : 0;
+  const b = {
+    regime: pct(s => s.regime_on), band: pct(s => s.in_band), below: pct(s => s.pct_from_200w < 0),
+    sig: S.filter(s => s.weeks_since_signal != null && s.weeks_since_signal <= 4).length,
+    med: median(S.map(s => s.pct_from_200w)),
+  };
+  $('#breadthLabel').textContent = universe === 'all' ? 'all universes' : D.universes[universe].label;
+  $('#tiles').innerHTML = [
+    [b.regime.toFixed(0) + '%', 'regime on (200D > 200W)'], [b.band.toFixed(0) + '%', 'in the band now'],
+    [b.below.toFixed(0) + '%', 'below 200W EMA'], [b.sig, 'signals, last 4 weeks'], [fmt(b.med), 'median % from 200W'],
+  ].map(([v, l]) => `<div class="tile"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+  const runs = H.runs.slice(-60);
+  const series = [['regime_on_pct', 'var(--s1)'], ['in_band_pct', 'var(--s2)'], ['below_200w_pct', 'var(--s3)']];
+  const val = (r, k) => universe === 'all'
+    ? avg(Object.values(r.universes).map(u => u[k]).filter(v => v != null))
+    : r.universes[universe]?.[k];
+  const pts = series.map(([k]) => runs.map(r => val(r, k)));
+  drawLines($('#hist'), runs.map(r => r.ts.slice(0, 10)), pts, series.map(s => s[1]), ['regime on', 'in band', 'below 200W']);
+  $('#breadthHelp').innerHTML = runs.length < 3
+    ? 'Breadth history builds up with each run — the chart fills in over the coming weeks.'
+    : `A rising "below 200W" line with "regime on" still high means a broad pullback: signals tend to cluster. ${runs.length} runs recorded.`;
+}
+const median = a => { const s = [...a].filter(v => v != null).sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : null; };
+const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+
+function drawLines(svg, labels, series, colors, names) {
+  const W = svg.clientWidth || 500, Hh = 120, pl = 28, pr = 6, pt = 6, pb = 16;
+  svg.setAttribute('viewBox', `0 0 ${W} ${Hh}`);
+  if (labels.length < 2) { svg.innerHTML = `<text x="${pl}" y="${Hh / 2}">Not enough runs yet</text>`; return; }
+  const x = i => pl + (W - pl - pr) * i / (labels.length - 1), y = v => pt + (Hh - pt - pb) * (1 - v / 100);
+  let out = [0, 50, 100].map(v => `<line class="g" x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}"/><text x="${pl - 4}" y="${y(v) + 3}" text-anchor="end">${v}</text>`).join('');
+  series.forEach((pts, si) => { out += `<path style="stroke:${colors[si]}" d="${pts.map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v ?? 0).toFixed(1)).join(' ')}"/>`; });
+  out += `<text x="${pl}" y="${Hh - 3}">${labels[0]}</text><text x="${W - pr}" y="${Hh - 3}" text-anchor="end">${labels.at(-1)}</text>`;
+  svg.innerHTML = out;
+  svg.onmousemove = e => {
+    const r = svg.getBoundingClientRect(), i = Math.round((e.clientX - r.left - pl) / (r.width - pl - pr) * (labels.length - 1));
+    if (i < 0 || i >= labels.length) return hideTip();
+    showTip(e, `${labels[i]}<br>` + series.map((p, si) => `${names[si]}: ${p[i]?.toFixed(1) ?? '–'}%`).join('<br>'));
+  };
+  svg.onmouseleave = hideTip;
+}
+function showTip(e, html) { const t = $('#tip'); t.innerHTML = html; t.style.display = 'block'; t.style.left = (e.clientX + 12) + 'px'; t.style.top = (e.clientY + 12) + 'px'; }
+function hideTip() { $('#tip').style.display = 'none'; }
+
+/* ---------- sparkline ---------- */
+function spark(s, w = 120, h = 32) {
+  const c = s.c, e = s.e, n = c.length, vals = [...c, ...e].filter(v => v != null);
+  if (!vals.length) return '';
+  const lo = Math.min(...vals), hi = Math.max(...vals), rng = hi - lo || 1;
+  const x = i => (i / (n - 1) * w).toFixed(1), y = v => (h - 2 - (v - lo) / rng * (h - 4)).toFixed(1);
+  const path = a => a.map((v, i) => v == null ? '' : (i && a[i - 1] != null ? 'L' : 'M') + x(i) + ' ' + y(v)).join(' ');
+  const bp = D.params.band_pct / 100;
+  const band = e.map((v, i) => v == null ? '' : (i ? 'L' : 'M') + x(i) + ' ' + y(v * (1 + bp))).join(' ') +
+    ' ' + [...e].reverse().map((v, j) => v == null ? '' : 'L' + x(n - 1 - j) + ' ' + y(v * (1 - bp))).join(' ') + ' Z';
+  const dots = s.sg.map(i => `<circle class="d" cx="${x(i)}" cy="${y(c[i])}" r="2.2"/>`).join('');
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><path class="b" d="${band}"/><path class="e" d="${path(e)}"/><path class="c" d="${path(c)}"/>${dots}</svg>`;
+}
+
+/* ---------- tables ---------- */
+const status = s => notes[s.symbol]?.status;
+const statusChip = s => status(s) ? `<span class="chip st">${esc(status(s))}</span>` : '';
+const symCell = s => `<td class="l"><span class="sym">${esc(s.symbol)}</span>${statusChip(s)}<div class="nm">${esc(s.name)}</div></td>`;
+const uniShort = u => ({sp500: 'S&P', nasdaq100: 'NDX', ftse100: 'FTSE'})[u] || u;
+
+function renderSignals() {
+  const S = stocks().filter(s => s.weeks_since_signal != null && s.weeks_since_signal <= 4)
+    .sort((a, b) => a.weeks_since_signal - b.weeks_since_signal || a.pct_from_200w - b.pct_from_200w);
+  const t = $('#sigTable');
+  if (!S.length) { t.innerHTML = '<tr><td class="empty l">No signals in the last 4 weeks.</td></tr>'; return; }
+  t.innerHTML = `<thead><tr><th class="l">Stock</th><th>When</th><th>% from 200W</th><th>Low tag</th><th>Chart</th></tr></thead><tbody>` +
+    S.map(s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${s.weeks_since_signal ? s.weeks_since_signal + 'w ago' : 'this week'} <span class="chip">${uniShort(s.universe)}</span></td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}</td><td>${fmt(s.low_pct_from_200w)}</td><td>${spark(s, 100, 28)}</td></tr>`).join('') + '</tbody>';
+  t.onclick = rowClick;
+}
+function renderApproach() {
+  const S = stocks().filter(s => s.regime_on && !s.in_band && s.pct_to_band > 0 && !(s.weeks_since_signal != null && s.weeks_since_signal <= 4))
+    .sort((a, b) => a.pct_to_band - b.pct_to_band).slice(0, 20);
+  const t = $('#appTable');
+  if (!S.length) { t.innerHTML = '<tr><td class="empty l">Nothing approaching.</td></tr>'; return; }
+  t.innerHTML = `<thead><tr><th class="l">Stock</th><th>Above band</th><th>4w</th><th>12w</th><th>Chart</th></tr></thead><tbody>` +
+    S.map(s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${fmt(s.pct_to_band, 1, false)} <span class="chip">${uniShort(s.universe)}</span></td><td class="${cls(s.ret_4w)}">${fmt(s.ret_4w)}</td><td class="${cls(s.ret_12w)}">${fmt(s.ret_12w)}</td><td>${spark(s, 100, 28)}</td></tr>`).join('') + '</tbody>';
+  t.onclick = rowClick;
+}
+
+const COLS = [
+  ['symbol', 'Stock', 'l'], ['sector', 'Sector', 'l'], ['close', 'Close'], ['pct_from_200w', '% from 200W'], ['pct_to_band', 'Above band'],
+  ['regime_on', 'Regime'], ['weeks_since_signal', 'Last signal'], ['ret_4w', '4w'], ['ret_12w', '12w'], ['pct_from_52w_high', 'vs 52w hi'], ['spark', 'Chart'],
+];
+function renderAll() {
+  const q = $('#q').value.trim().toLowerCase(), sec = $('#sector').value, f = $('#filt').value, onlyR = $('#onlyRegime').checked;
+  let S = stocks().filter(s => (!q || s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)) && (!sec || s.sector === sec) && (!onlyR || s.regime_on));
+  const ws = s => s.weeks_since_signal;
+  if (f === 'sig') S = S.filter(s => ws(s) != null && ws(s) <= 4);
+  if (f === 'sig12') S = S.filter(s => ws(s) != null && ws(s) <= 12);
+  if (f === 'band') S = S.filter(s => s.in_band);
+  if (f === 'regime') S = S.filter(s => s.regime_on);
+  if (f === 'near') S = S.filter(s => s.pct_to_band != null && s.pct_to_band > 0 && s.pct_to_band <= 10);
+  if (f === 'mine') S = S.filter(s => status(s));
+  S.sort((a, b) => cmp(a[sortKey], b[sortKey]) * sortDir);
+  $('#count').textContent = `${S.length} shown`;
+  const pages = Math.max(1, Math.ceil(S.length / PAGE)); page = Math.min(page, pages - 1);
+  const rows = S.slice(page * PAGE, (page + 1) * PAGE);
+  $('#pageInfo').textContent = `page ${page + 1} of ${pages}`;
+  const t = $('#allTable');
+  t.innerHTML = `<thead><tr>${COLS.map(([k, l, c]) => `<th class="${c || ''}" data-k="${k}" ${k === sortKey ? `data-sorted="${sortDir > 0 ? 'asc' : 'desc'}"` : ''}>${l}</th>`).join('')}</tr></thead><tbody>` +
+    rows.map(s => `<tr data-sym="${s.symbol}">${symCell(s)}<td class="l nm">${esc(s.sector)}</td><td>${s.close}</td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}${s.in_band ? '<span class="chip band">band</span>' : ''}</td><td>${s.pct_to_band > 0 ? fmt(s.pct_to_band, 1, false) : '–'}</td><td>${s.regime_on ? `<span class="chip sig">on ${s.regime_weeks ?? ''}w</span>` : '<span class="chip off">off</span>'}</td><td>${ws(s) == null ? '–' : ws(s) + 'w'}</td><td class="${cls(s.ret_4w)}">${fmt(s.ret_4w)}</td><td class="${cls(s.ret_12w)}">${fmt(s.ret_12w)}</td><td>${fmt(s.pct_from_52w_high)}</td><td>${spark(s)}</td></tr>`).join('') + '</tbody>';
+  t.querySelector('thead').onclick = e => { const th = e.target.closest('th'); if (!th || th.dataset.k === 'spark') return; if (sortKey === th.dataset.k) sortDir *= -1; else { sortKey = th.dataset.k; sortDir = 1; } renderAll(); };
+  t.querySelector('tbody').onclick = rowClick;
+}
+const cmp = (a, b) => a == null ? 1 : b == null ? -1 : typeof a === 'string' ? a.localeCompare(b) : a - b;
+
+/* ---------- history ---------- */
+const HCOLS = [['symbol', 'Stock', 'l'], ['date', 'Date'], ['mode', 'Mode', 'l'], ['price', 'Entry'], ['fwd_4w', '+4w'], ['fwd_12w', '+12w'], ['fwd_26w', '+26w'], ['mdd_26w', 'Max DD 26w'], ['fwd_now', 'To now']];
+function renderHist() {
+  const mode = $('#hMode').value, live = $('#hLive').checked, mature = $('#hMature').checked;
+  const liveKeys = new Set(Object.values(H.live_signals).map(v => `${v.symbol}|${v.week}|${v.mode}`));
+  let S = D.signals.filter(r => (universe === 'all' || r.universe === universe) && (!mode || r.mode === mode)
+    && (!live || liveKeys.has(`${r.symbol}|${r.date}|${r.mode}`)) && (!mature || r.fwd_26w != null));
+  const stat = k => { const v = S.map(r => r[k]).filter(x => x != null); return v.length ? {avg: avg(v), win: 100 * v.filter(x => x > 0).length / v.length, n: v.length} : null; };
+  const s4 = stat('fwd_4w'), s12 = stat('fwd_12w'), s26 = stat('fwd_26w'), dd = stat('mdd_26w');
+  $('#hStats').innerHTML = [
+    [S.length, 'signals'],
+    [s4 ? fmt(s4.avg) : '–', 'avg +4w'], [s12 ? fmt(s12.avg) : '–', 'avg +12w'], [s26 ? fmt(s26.avg) : '–', 'avg +26w'],
+    [s26 ? s26.win.toFixed(0) + '%' : '–', 'positive at +26w'], [dd ? fmt(dd.avg) : '–', 'avg max drawdown'],
+  ].map(([v, l]) => `<div class="tile"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+  S.sort((a, b) => cmp(a[hSortKey], b[hSortKey]) * hSortDir);
+  const pages = Math.max(1, Math.ceil(S.length / PAGE)); hPage = Math.min(hPage, pages - 1);
+  $('#hPageInfo').textContent = `page ${hPage + 1} of ${pages}`;
+  const t = $('#histTable');
+  t.innerHTML = `<thead><tr>${HCOLS.map(([k, l, c]) => `<th class="${c || ''}" data-k="${k}" ${k === hSortKey ? `data-sorted="${hSortDir > 0 ? 'asc' : 'desc'}"` : ''}>${l}</th>`).join('')}</tr></thead><tbody>` +
+    S.slice(hPage * PAGE, (hPage + 1) * PAGE).map(r => `<tr data-sym="${r.symbol}"><td class="l"><span class="sym">${esc(r.symbol)}</span> <span class="chip">${uniShort(r.universe)}</span>${liveKeys.has(`${r.symbol}|${r.date}|${r.mode}`) ? '<span class="chip sig">live</span>' : ''}</td><td>${r.date}</td><td class="l">${r.mode}</td><td>${r.price}</td>` +
+      ['fwd_4w', 'fwd_12w', 'fwd_26w', 'mdd_26w', 'fwd_now'].map(k => `<td class="${cls(r[k])}">${fmt(r[k])}</td>`).join('') + '</tr>').join('') + '</tbody>';
+  t.querySelector('thead').onclick = e => { const th = e.target.closest('th'); if (!th) return; if (hSortKey === th.dataset.k) hSortDir *= -1; else { hSortKey = th.dataset.k; hSortDir = -1; } renderHist(); };
+  t.querySelector('tbody').onclick = rowClick;
+}
+
+/* ---------- drawer ---------- */
+function rowClick(e) { const tr = e.target.closest('tr[data-sym]'); if (tr) openDrawer(tr.dataset.sym); }
+function openDrawer(sym) {
+  const s = D.stocks.find(x => x.symbol === sym); if (!s) return;
+  const n = notes[sym] || {};
+  const d = $('#drawer');
+  d.innerHTML = `<button class="btn close" id="dclose" aria-label="Close">✕</button>
+    <h3>${esc(s.symbol)} <span class="chip">${uniShort(s.universe)}</span></h3>
+    <div class="sub">${esc(s.name)}${s.sector ? ' · ' + esc(s.sector) : ''} · <a target="_blank" rel="noopener" href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(s.tv)}&interval=W">Open weekly chart in TradingView ↗</a></div>
+    <div class="legend"><span><i style="background:var(--ink)"></i>Close</span><span><i style="background:var(--s1)"></i>200W EMA</span><span><i style="background:var(--band);height:8px"></i>±${D.params.band_pct}% band</span><span><i style="background:var(--s3);height:6px;width:6px;border-radius:50%"></i>Signal</span></div>
+    <svg class="big" id="bigChart"></svg>
+    <div class="kv">
+      ${kv('Close', s.close)}${kv('200W EMA', s.ema200w)}${kv('200D EMA', s.ema200d)}
+      ${kv('% from 200W', fmt(s.pct_from_200w))}${kv('Low this week vs 200W', fmt(s.low_pct_from_200w))}${kv('Above band top', s.pct_to_band > 0 ? fmt(s.pct_to_band, 1, false) : 'inside / below')}
+      ${kv('Regime', s.regime_on ? `on for ${s.regime_weeks}w` : 'off')}${kv('Last touch & hold signal', s.weeks_since_signal == null ? 'none' : s.weeks_since_signal + 'w ago')}
+      ${kv('Last reclaim signal', s.weeks_since_other == null ? 'none' : s.weeks_since_other + 'w ago')}${kv('vs 52w high / low', fmt(s.pct_from_52w_high) + ' / ' + fmt(s.pct_from_52w_low))}
+      ${kv('Return 4w / 12w', fmt(s.ret_4w) + ' / ' + fmt(s.ret_12w))}${kv('Week ending', s.week)}
+    </div>
+    <label>Status <select id="nStatus"><option value="">—</option>${['watching', 'bought', 'passed', 'sold'].map(v => `<option ${n.status === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+    <label style="display:block;margin-top:8px">Notes <textarea id="nText" placeholder="Why it's interesting, levels, what you did…">${esc(n.note || '')}</textarea></label>
+    <p class="help">Status and notes are saved in this browser only.</p>`;
+  d.classList.add('open'); d.setAttribute('aria-hidden', 'false'); $('#scrim').classList.add('open');
+  $('#dclose').onclick = closeDrawer;
+  const save = () => { const st = $('#nStatus').value, tx = $('#nText').value.trim(); if (st || tx) notes[sym] = {status: st, note: tx, t: Date.now()}; else delete notes[sym]; saveNotes(); renderSignals(); renderApproach(); renderAll(); };
+  $('#nStatus').onchange = save; $('#nText').oninput = save;
+  drawBig(s);
+}
+const kv = (l, v) => `<div><span>${l}</span>${v}</div>`;
+function closeDrawer() { $('#drawer').classList.remove('open'); $('#drawer').setAttribute('aria-hidden', 'true'); $('#scrim').classList.remove('open'); }
+function drawBig(s) {
+  const svg = $('#bigChart'), W = svg.clientWidth || 520, Hh = 220, pl = 44, pr = 8, pt = 8, pb = 18;
+  svg.setAttribute('viewBox', `0 0 ${W} ${Hh}`);
+  const c = s.c, e = s.e, n = c.length, bp = D.params.band_pct / 100;
+  const vals = [...c, ...e.map(v => v && v * (1 + bp)), ...e.map(v => v && v * (1 - bp))].filter(v => v != null);
+  const lo = Math.min(...vals) * 0.98, hi = Math.max(...vals) * 1.02;
+  const x = i => pl + (W - pl - pr) * i / (n - 1), y = v => pt + (Hh - pt - pb) * (1 - (v - lo) / (hi - lo));
+  const path = a => a.map((v, i) => v == null ? '' : (i && a[i - 1] != null ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join(' ');
+  const band = e.map((v, i) => v == null ? '' : (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v * (1 + bp)).toFixed(1)).join(' ') + ' ' + [...e].reverse().map((v, j) => v == null ? '' : 'L' + x(n - 1 - j).toFixed(1) + ' ' + y(v * (1 - bp)).toFixed(1)).join(' ') + ' Z';
+  const ticks = niceTicks(lo, hi, 4);
+  let out = ticks.map(v => `<line class="g" x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}"/><text x="${pl - 5}" y="${y(v) + 3}" text-anchor="end">${v}</text>`).join('');
+  out += `<path class="b" d="${band}"/><path class="e" d="${path(e)}"/><path class="c" d="${path(c)}"/>`;
+  out += s.sg.map(i => `<circle class="d" cx="${x(i)}" cy="${y(c[i])}" r="4"/>`).join('');
+  [0, Math.floor(n / 2), n - 1].forEach(i => { out += `<text x="${x(i)}" y="${Hh - 4}" text-anchor="${i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}">${D.weeks[i]}</text>`; });
+  svg.innerHTML = out;
+  svg.onmousemove = ev => { const r = svg.getBoundingClientRect(), i = Math.round((ev.clientX - r.left - pl * r.width / W) / (r.width * (W - pl - pr) / W) * (n - 1)); if (i < 0 || i >= n || c[i] == null) return hideTip(); showTip(ev, `${D.weeks[i]}<br>close ${c[i]} · 200W ${e[i]}<br>${fmt((c[i] / e[i] - 1) * 100)} from 200W`); };
+  svg.onmouseleave = hideTip;
+}
+function niceTicks(lo, hi, n) { const span = hi - lo, step = Math.pow(10, Math.floor(Math.log10(span / n))), m = [1, 2, 5, 10].find(k => span / (step * k) <= n + 1) || 10, st = step * m; const out = []; for (let v = Math.ceil(lo / st) * st; v <= hi; v += st) out.push(+v.toFixed(2)); return out; }
+})();
+</script>
+</body>
+</html>

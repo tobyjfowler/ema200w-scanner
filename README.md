@@ -6,17 +6,20 @@ Weekly stock scan that finds names pulling back to their 200-week EMA while the
 
 ## How it runs
 
-- **Automatically**: every Friday evening (UK) via GitHub Actions
-  (`.github/workflows/scan.yml`). Results go to Telegram.
-- **On demand**: Actions tab → *200W EMA scan* → *Run workflow*. You can pick the
-  universe (S&P 500 / Nasdaq 100 / FTSE 100), entry mode and lookback there.
+- **Automatically**: every weekday evening (UK) via GitHub Actions
+  (`.github/workflows/scan.yml`). `build_dashboard.py` scans the S&P 500,
+  Nasdaq 100 and FTSE 100, writes `data/latest.json` + `data/history.json`,
+  commits them, and publishes the dashboard (`index.html`) to GitHub Pages.
+- **Telegram**: a message on any day with new signals, plus a summary every Friday.
+- **On demand**: Actions tab → *200W EMA scan* → *Run workflow*.
+- **Dashboard**: https://tobyjfowler.github.io/ema200w-scanner/
 
-The full table for every stock scanned is saved as a downloadable CSV on each
-run (Actions → the run → *Artifacts*).
+`ema200w_scanner.py` is the original single-universe CLI and still works on its own.
 
 ## Setup (one-off)
 
-Repo → Settings → Secrets and variables → Actions → add:
+1. Repo → Settings → Pages → *Source: GitHub Actions*.
+2. Repo → Settings → Secrets and variables → Actions → add:
 
 | Secret | What |
 |---|---|

@@ -108,6 +108,7 @@ def evaluate(daily: pd.DataFrame, *, len_w=200, len_d=200, band_pct=3.0,
     wk["signal"] = signal.astype(int)
     wk["weeks_since_signal"] = bars_since(signal)
     wk["regime_on"] = regime_ok.astype(int)
+    wk["regime_age"] = regime_age
     wk["pct_from_200w"] = (wk["Close"] / wk["emaW"] - 1) * 100
     wk["low_pct_from_200w"] = (wk["Low"] / wk["emaW"] - 1) * 100
     wk["touched"] = touched.astype(int)
@@ -145,6 +146,36 @@ def load_universe(name: str) -> list[str]:
         raise ValueError(f"unknown universe {name}")
     # Yahoo uses '-' where exchanges use '.' (BRK.B -> BRK-B)
     return sorted({s.replace(".", "-") if not s.endswith(".L") else s for s in syms})
+
+
+def _yahoo(sym: str) -> str:
+    return sym.replace(".", "-")
+
+
+def load_universe_meta(name: str) -> dict[str, dict]:
+    """symbol -> {name, sector} from the same Wikipedia tables. Best effort."""
+    try:
+        if name == "sp500":
+            tables = _tables("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies")
+            tbl = next(t for t in tables if "Symbol" in t.columns)
+            return {_yahoo(str(r["Symbol"])): {"name": str(r.get("Security", "")), "sector": str(r.get("GICS Sector", ""))}
+                    for _, r in tbl.iterrows()}
+        if name == "nasdaq100":
+            tables = _tables("https://en.wikipedia.org/wiki/Nasdaq-100")
+            tbl = next(t for t in tables if "Ticker" in t.columns or "Symbol" in t.columns)
+            col = "Ticker" if "Ticker" in tbl.columns else "Symbol"
+            return {_yahoo(str(r[col])): {"name": str(r.get("Company", "")), "sector": str(r.get("GICS Sector", ""))}
+                    for _, r in tbl.iterrows()}
+        if name == "ftse100":
+            tables = _tables("https://en.wikipedia.org/wiki/FTSE_100_Index")
+            tbl = next(t for t in tables if "Ticker" in t.columns or "EPIC" in t.columns)
+            col = "Ticker" if "Ticker" in tbl.columns else "EPIC"
+            sec = next((c for c in tbl.columns if "sector" in str(c).lower()), None)
+            return {str(r[col]).replace(".", "") + ".L": {"name": str(r.get("Company", "")), "sector": str(r[sec]) if sec else ""}
+                    for _, r in tbl.iterrows()}
+    except Exception as e:  # metadata is cosmetic — never fail the scan over it
+        print(f"meta for {name} failed: {e}", file=sys.stderr)
+    return {}
 
 
 def load_tickers_file(path: str) -> list[str]:
