@@ -124,58 +124,66 @@ def _tables(url: str) -> list[pd.DataFrame]:
     from io import StringIO
     r = requests.get(url, headers={"User-Agent": "Mozilla/5.0 (ema200w-scanner)"}, timeout=30)
     r.raise_for_status()
-    return pd.read_html(StringIO(r.text))
+    tables = pd.read_html(StringIO(r.text))
+    # flatten multi-level headers to plain strings
+    for t in tables:
+        t.columns = [" ".join(str(x) for x in c if str(x) != "nan").strip() if isinstance(c, tuple) else str(c)
+                     for c in t.columns]
+    return tables
+
+
+def _find_col(t: pd.DataFrame, *names) -> str | None:
+    for c in t.columns:
+        cl = str(c).lower()
+        if any(n in cl for n in names):
+            return c
+    return None
+
+
+def _constituents(url: str, ticker_names=("ticker", "symbol", "epic")) -> tuple[pd.DataFrame, str]:
+    """Largest table on the page that has a ticker-like column."""
+    best = None
+    for t in _tables(url):
+        col = _find_col(t, *ticker_names)
+        if col and len(t) >= 50 and (best is None or len(t) > len(best[0])):
+            best = (t, col)
+    if best is None:
+        raise RuntimeError(f"no constituents table found at {url}")
+    return best
+
+
+_UNIVERSE_URL = {
+    "sp500": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
+    "nasdaq100": "https://en.wikipedia.org/wiki/Nasdaq-100",
+    "ftse100": "https://en.wikipedia.org/wiki/FTSE_100_Index",
+}
+
+
+def _yahoo(sym: str, name: str) -> str:
+    sym = str(sym).strip()
+    if name == "ftse100":
+        return sym.replace(".", "") + ".L"
+    return sym.replace(".", "-")     # BRK.B -> BRK-B
 
 
 def load_universe(name: str) -> list[str]:
-    if name == "sp500":
-        tables = _tables("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies")
-        tbl = next(t for t in tables if "Symbol" in t.columns)
-        syms = tbl["Symbol"].astype(str).tolist()
-    elif name == "nasdaq100":
-        tables = _tables("https://en.wikipedia.org/wiki/Nasdaq-100")
-        tbl = next(t for t in tables if "Ticker" in t.columns or "Symbol" in t.columns)
-        col = "Ticker" if "Ticker" in tbl.columns else "Symbol"
-        syms = tbl[col].astype(str).tolist()
-    elif name == "ftse100":
-        tables = _tables("https://en.wikipedia.org/wiki/FTSE_100_Index")
-        tbl = next(t for t in tables if "Ticker" in t.columns or "EPIC" in t.columns)
-        col = "Ticker" if "Ticker" in tbl.columns else "EPIC"
-        syms = [s.replace(".", "") + ".L" for s in tbl[col].astype(str)]
-    else:
+    if name not in _UNIVERSE_URL:
         raise ValueError(f"unknown universe {name}")
-    # Yahoo uses '-' where exchanges use '.' (BRK.B -> BRK-B)
-    return sorted({s.replace(".", "-") if not s.endswith(".L") else s for s in syms})
-
-
-def _yahoo(sym: str) -> str:
-    return sym.replace(".", "-")
+    tbl, col = _constituents(_UNIVERSE_URL[name])
+    return sorted({_yahoo(s, name) for s in tbl[col].dropna().astype(str) if s.strip()})
 
 
 def load_universe_meta(name: str) -> dict[str, dict]:
-    """symbol -> {name, sector} from the same Wikipedia tables. Best effort."""
+    """symbol -> {name, sector} from the same table. Best effort — never fails the scan."""
     try:
-        if name == "sp500":
-            tables = _tables("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies")
-            tbl = next(t for t in tables if "Symbol" in t.columns)
-            return {_yahoo(str(r["Symbol"])): {"name": str(r.get("Security", "")), "sector": str(r.get("GICS Sector", ""))}
-                    for _, r in tbl.iterrows()}
-        if name == "nasdaq100":
-            tables = _tables("https://en.wikipedia.org/wiki/Nasdaq-100")
-            tbl = next(t for t in tables if "Ticker" in t.columns or "Symbol" in t.columns)
-            col = "Ticker" if "Ticker" in tbl.columns else "Symbol"
-            return {_yahoo(str(r[col])): {"name": str(r.get("Company", "")), "sector": str(r.get("GICS Sector", ""))}
-                    for _, r in tbl.iterrows()}
-        if name == "ftse100":
-            tables = _tables("https://en.wikipedia.org/wiki/FTSE_100_Index")
-            tbl = next(t for t in tables if "Ticker" in t.columns or "EPIC" in t.columns)
-            col = "Ticker" if "Ticker" in tbl.columns else "EPIC"
-            sec = next((c for c in tbl.columns if "sector" in str(c).lower()), None)
-            return {str(r[col]).replace(".", "") + ".L": {"name": str(r.get("Company", "")), "sector": str(r[sec]) if sec else ""}
-                    for _, r in tbl.iterrows()}
-    except Exception as e:  # metadata is cosmetic — never fail the scan over it
+        tbl, col = _constituents(_UNIVERSE_URL[name])
+        ncol = _find_col(tbl, "security", "company", "name")
+        scol = _find_col(tbl, "sector", "industry")
+        return {_yahoo(r[col], name): {"name": str(r[ncol]) if ncol else "", "sector": str(r[scol]) if scol else ""}
+                for _, r in tbl.iterrows() if str(r[col]).strip()}
+    except Exception as e:
         print(f"meta for {name} failed: {e}", file=sys.stderr)
-    return {}
+        return {}
 
 
 def load_tickers_file(path: str) -> list[str]:

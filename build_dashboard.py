@@ -43,7 +43,11 @@ def r2(x):
 
 
 def scan_universe(name: str, args) -> tuple[list[dict], list[dict]]:
-    tickers = load_universe(name)
+    try:
+        tickers = load_universe(name)
+    except Exception as e:
+        print(f"[{name}] could not load constituents: {e}", file=sys.stderr)
+        return [], []
     meta = load_universe_meta(name)
     print(f"[{name}] {len(tickers)} symbols", file=sys.stderr)
     data = fetch_daily(tickers, args.years)
