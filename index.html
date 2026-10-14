@@ -47,6 +47,7 @@ h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
 .tab[aria-selected="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); }
 .tab:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
 section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
+.h2row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; } .h2row h2 { margin: 0; }
 h2 { font-size: 14px; margin: 0 0 10px; color: var(--ink-2); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
 tfoot td { border-bottom: 0; padding-top: 10px; } .btn.more { width: 100%; }
 h2 small { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--muted); margin-left: 8px; }
@@ -123,11 +124,11 @@ svg.spark { display: block; } .spark .c { fill: none; stroke: var(--ink); stroke
 
   <div class="row2">
     <section>
-      <h2>Signals <small>last 4 weeks · click a row for detail</small></h2>
+      <div class="h2row"><h2>Signals <small>last 4 weeks · click a row for detail</small></h2><button class="btn" id="expSig" title="Download a TradingView watchlist file">⇩ TV watchlist</button></div>
       <div class="tablewrap"><table id="sigTable"></table></div>
     </section>
     <section>
-      <h2>Approaching the band <small>regime on, closest to the band first</small></h2>
+      <div class="h2row"><h2>Approaching the band <small>regime on, closest to the band first</small></h2><button class="btn" id="expApp" title="Download a TradingView watchlist file">⇩ TV watchlist</button></div>
       <div class="tablewrap"><table id="appTable"></table></div>
     </section>
   </div>
@@ -162,6 +163,7 @@ svg.spark { display: block; } .spark .c { fill: none; stroke: var(--ink); stroke
     <div class="stats" id="hStats"></div>
     <div class="tablewrap"><table id="histTable"></table></div>
     <div class="pager"><span id="hPageInfo"></span><button id="hPrev">‹</button><button id="hNext">›</button></div>
+    <p class="help">The ⇩ TV watchlist buttons download a text file: in TradingView open the watchlist menu (⋯ at the top of the watchlist panel) → <b>Import list</b> and pick the file. The same list is also copied to your clipboard, so on a phone you can paste it into "Add symbol" instead.</p>
     <p class="help">Each row is the first signal of a cluster (touch &amp; hold re-fires while price sits in the band; "Re-fires" counts those in the following 8 weeks). Historic signals are computed on today's index membership (survivorship bias: names that fell out of the index aren't included). "Live" signals are ones the dashboard logged as they happened — that's the clean out-of-sample record.</p>
   </section>
 </div>
@@ -292,6 +294,19 @@ const symCell = s => `<td class="l"><span class="sym">${esc(s.symbol)}</span>${s
 const uniShort = u => ({sp500: 'S&P', nasdaq100: 'NDX', ftse100: 'FTSE'})[u] || u;
 
 const SHOW = 10, expanded = {};
+let lastSig = [], lastApp = [];
+function tvList(rows) { return rows.map(s => s.tv.includes(':') ? s.tv : s.tv).join(','); }
+function exportTV(sections, filename) {
+  const body = sections.filter(([, rows]) => rows.length).map(([name, rows]) => `###${name},` + tvList(rows)).join(',');
+  if (!body) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([body], {type: 'text/plain'})); a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  if (navigator.clipboard) navigator.clipboard.writeText(body).catch(() => {});
+}
+const uniTag = () => universe === 'all' ? 'All' : D.universes[universe].label;
+$('#expSig').onclick = () => exportTV([[`200W signals ${D.generated.slice(0, 10)}`, lastSig]], `200W-signals-${D.generated.slice(0, 10)}.txt`);
+$('#expApp').onclick = () => exportTV([[`200W approaching ${D.generated.slice(0, 10)}`, lastApp]], `200W-approaching-${D.generated.slice(0, 10)}.txt`);
 function collapsible(t, key, rows, head, rowFn) {
   const open = !!expanded[key], shown = open ? rows : rows.slice(0, SHOW);
   t.innerHTML = head + '<tbody>' + shown.map(rowFn).join('') + '</tbody>' +
@@ -301,6 +316,7 @@ function collapsible(t, key, rows, head, rowFn) {
 function renderSignals() {
   const S = stocks().filter(s => s.weeks_since_signal != null && s.weeks_since_signal <= 4)
     .sort((a, b) => a.weeks_since_signal - b.weeks_since_signal || a.pct_from_200w - b.pct_from_200w);
+  lastSig = S;
   const t = $('#sigTable');
   if (!S.length) { t.innerHTML = '<tr><td class="empty l">No signals in the last 4 weeks.</td></tr>'; return; }
   collapsible(t, 'sig', S, `<thead><tr><th class="l">Stock</th><th>When</th><th>% from 200W</th><th>Low tag</th><th>Chart</th></tr></thead>`,
@@ -309,6 +325,7 @@ function renderSignals() {
 function renderApproach() {
   const S = stocks().filter(s => s.regime_on && !s.in_band && s.pct_to_band > 0 && !(s.weeks_since_signal != null && s.weeks_since_signal <= 4))
     .sort((a, b) => a.pct_to_band - b.pct_to_band).slice(0, 100);
+  lastApp = S;
   const t = $('#appTable');
   if (!S.length) { t.innerHTML = '<tr><td class="empty l">Nothing approaching.</td></tr>'; return; }
   collapsible(t, 'app', S, `<thead><tr><th class="l">Stock</th><th>Above band</th><th>4w</th><th>12w</th><th>Chart</th></tr></thead>`,
