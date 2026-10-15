@@ -29,7 +29,36 @@ SIGNAL_LOOKBACK_W = 260    # how far back to list historic signals (5 years)
 FWD = (4, 12, 26)          # forward-return horizons in weeks
 CLUSTER_GAP = 8            # weeks without a signal before a new one counts as a fresh setup
 
-UNIVERSE_LABEL = {"sp500": "S&P 500", "nasdaq100": "Nasdaq 100", "ftse100": "FTSE 100"}
+UNIVERSE_LABEL = {"sp500": "S&P 500", "nasdaq100": "Nasdaq 100", "ftse100": "FTSE 100", "markets": "Markets"}
+
+# Indexes, commodities, rates and crypto: Yahoo symbol -> (name, category, TradingView symbol)
+MARKETS = {
+    "^GSPC": ("S&P 500", "Index", "SP:SPX"),
+    "^NDX": ("Nasdaq 100", "Index", "NASDAQ:NDX"),
+    "^DJI": ("Dow Jones Industrial", "Index", "DJ:DJI"),
+    "^RUT": ("Russell 2000", "Index", "TVC:RUT"),
+    "^FTSE": ("FTSE 100", "Index", "LSE:UKX"),
+    "^FTMC": ("FTSE 250", "Index", "LSE:MCX"),
+    "^GDAXI": ("DAX", "Index", "XETR:DAX"),
+    "^STOXX50E": ("Euro Stoxx 50", "Index", "TVC:SX5E"),
+    "^N225": ("Nikkei 225", "Index", "TVC:NI225"),
+    "^HSI": ("Hang Seng", "Index", "TVC:HSI"),
+    "DX-Y.NYB": ("US Dollar Index", "Index", "TVC:DXY"),
+    "GC=F": ("Gold", "Commodity", "COMEX:GC1!"),
+    "SI=F": ("Silver", "Commodity", "COMEX:SI1!"),
+    "HG=F": ("Copper", "Commodity", "COMEX:HG1!"),
+    "PL=F": ("Platinum", "Commodity", "NYMEX:PL1!"),
+    "CL=F": ("Crude oil (WTI)", "Commodity", "NYMEX:CL1!"),
+    "BZ=F": ("Brent crude", "Commodity", "NYMEX:BB1!"),
+    "NG=F": ("Natural gas", "Commodity", "NYMEX:NG1!"),
+    "ZC=F": ("Corn", "Commodity", "CBOT:ZC1!"),
+    "ZW=F": ("Wheat", "Commodity", "CBOT:ZW1!"),
+    "ZS=F": ("Soybeans", "Commodity", "CBOT:ZS1!"),
+    "TLT": ("US 20y+ Treasuries (TLT)", "Rates & credit", "NASDAQ:TLT"),
+    "HYG": ("US high yield (HYG)", "Rates & credit", "AMEX:HYG"),
+    "BTC-USD": ("Bitcoin", "Crypto", "INDEX:BTCUSD"),
+    "ETH-USD": ("Ether", "Crypto", "INDEX:ETHUSD"),
+}
 
 
 # Yahoo exchange code -> TradingView exchange prefix
@@ -76,13 +105,19 @@ def r2(x):
 
 
 def scan_universe(name: str, args, exchanges: dict[str, str]) -> tuple[list[dict], list[dict]]:
-    try:
-        tickers = load_universe(name)
-    except Exception as e:
-        print(f"[{name}] could not load constituents: {e}", file=sys.stderr)
-        return [], []
-    meta = load_universe_meta(name)
-    exchanges.update(load_exchanges([t for t in tickers if not t.endswith(".L")]))
+    if name == "markets":
+        tickers = list(MARKETS)
+        meta = {k: {"name": v[0], "sector": v[1]} for k, v in MARKETS.items()}
+        tv_override = {k: v[2] for k, v in MARKETS.items()}
+    else:
+        try:
+            tickers = load_universe(name)
+        except Exception as e:
+            print(f"[{name}] could not load constituents: {e}", file=sys.stderr)
+            return [], []
+        meta = load_universe_meta(name)
+        tv_override = {}
+        exchanges.update(load_exchanges([t for t in tickers if not t.endswith(".L")]))
     print(f"[{name}] {len(tickers)} symbols", file=sys.stderr)
     data = fetch_daily(tickers, args.years)
     print(f"[{name}] data for {len(data)}", file=sys.stderr)
@@ -108,7 +143,7 @@ def scan_universe(name: str, args, exchanges: dict[str, str]) -> tuple[list[dict
 
         stocks.append({
             "symbol": sym,
-            "tv": tv_symbol(sym, exchanges.get(sym, "")),
+            "tv": tv_override.get(sym) or tv_symbol(sym, exchanges.get(sym, "")),
             "name": m.get("name", ""),
             "sector": m.get("sector", ""),
             "universe": name,
@@ -179,7 +214,7 @@ def breadth(stocks: list[dict]) -> dict:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--universes", default="sp500,nasdaq100,ftse100")
+    ap.add_argument("--universes", default="sp500,nasdaq100,ftse100,markets")
     ap.add_argument("--mode", choices=["touch", "reclaim"], default="touch")
     ap.add_argument("--band", type=float, default=3.0)
     ap.add_argument("--regime-min", type=int, default=2)

@@ -45,6 +45,10 @@ h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
 .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
 .tab { border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); padding: 6px 12px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 13px; }
 .tab[aria-selected="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); }
+#views { border-right: 1px solid var(--border); padding-right: 14px; margin-right: -6px; } #views .tab { font-weight: 600; }
+body.view-markets #tabs, body.view-markets section#sigSection, body.view-markets section#appSection, body.view-markets section#allSection { display: none !important; }
+body.view-stocks section#mktSection { display: none !important; }
+.grp td { background: var(--surface-2); color: var(--ink-2); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; cursor: default; }
 .tab:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
 section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
 .h2row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; } .h2row h2 { margin: 0; }
@@ -106,6 +110,7 @@ svg.spark { display: block; } .spark .c { fill: none; stroke: var(--ink); stroke
 @media (max-width: 720px) {
   #sigTable th:nth-child(4), #sigTable td:nth-child(4), #sigTable th:nth-child(7), #sigTable td:nth-child(7), #sigTable th:nth-child(8), #sigTable td:nth-child(8),
   #appTable th:nth-child(3), #appTable td:nth-child(3), #appTable th:nth-child(6), #appTable td:nth-child(6), #appTable th:nth-child(7), #appTable td:nth-child(7), #appTable th:nth-child(8), #appTable td:nth-child(8) { display: none; }
+  #mktTable th:nth-child(2), #mktTable td:nth-child(2), #mktTable th:nth-child(4), #mktTable td:nth-child(4), #mktTable th:nth-child(6), #mktTable td:nth-child(6), #mktTable th:nth-child(9), #mktTable td:nth-child(9), #mktTable th:nth-child(10), #mktTable td:nth-child(10), #mktTable th:nth-child(11), #mktTable td:nth-child(11) { display: none; }
   th, td { padding: 6px 4px; font-size: 13px; white-space: normal; } th { font-size: 11px; line-height: 1.2; }
   td.l { max-width: 120px; } .nm { max-width: 112px; } td.l .chip { display: none; } .h2row small { display: none; }
 </style>
@@ -117,6 +122,7 @@ svg.spark { display: block; } .spark .c { fill: none; stroke: var(--ink); stroke
       <h1>200W EMA Scanner</h1>
       <div class="meta" id="meta">Loading…</div>
     </div>
+    <div class="tabs" role="tablist" id="views"><button class="tab view" data-v="stocks" aria-selected="true">Stocks</button><button class="tab view" data-v="markets" aria-selected="false">Markets</button></div>
     <div class="tabs" role="tablist" id="tabs"></div>
     <label class="theme"><select id="theme"><option value="auto">Auto theme</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
   </header>
@@ -130,17 +136,23 @@ svg.spark { display: block; } .spark .c { fill: none; stroke: var(--ink); stroke
     </div>
   </section>
 
-  <section>
+  <section id="sigSection">
     <div class="h2row"><h2>Signals <small>last 4 weeks · click a row for detail</small></h2><button class="btn" id="expSig" title="Download a TradingView watchlist file">⇩ TV watchlist</button></div>
     <div class="tablewrap"><table id="sigTable"></table></div>
   </section>
 
-  <section>
+  <section id="appSection">
     <div class="h2row"><h2>Approaching the band <small>regime on, closest to the band first</small></h2><button class="btn" id="expApp" title="Download a TradingView watchlist file">⇩ TV watchlist</button></div>
     <div class="tablewrap"><table id="appTable"></table></div>
   </section>
 
-  <section>
+  <section id="mktSection">
+    <div class="h2row"><h2>Indexes, commodities, rates &amp; crypto <small>click a column to sort · click a row for detail</small></h2><button class="btn" id="expMkt" title="Download a TradingView watchlist file">⇩ TV watchlist</button></div>
+    <div class="tablewrap"><table id="mktTable"></table></div>
+    <p class="help">Indexes use the cash index; commodities use Yahoo's continuous front-month futures (not back-adjusted, so small roll gaps exist); TLT/HYG are ETFs. Same 200W / 200D logic as the stocks.</p>
+  </section>
+
+  <section id="allSection">
     <h2>All stocks <small id="count"></small></h2>
     <div class="controls">
       <input id="q" type="search" placeholder="Search symbol or name" aria-label="Search">
@@ -196,7 +208,8 @@ try { const t = localStorage.getItem('ema200w-theme'); if (t) { $('#theme').valu
 function applyTheme(t) { if (t === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t; }
 $('#theme').onchange = e => { applyTheme(e.target.value); try { localStorage.setItem('ema200w-theme', e.target.value); } catch {} };
 
-let D, H, universe = 'all', page = 0, hPage = 0, sortKey = 'pct_from_200w', sortDir = 1, hSortKey = 'date', hSortDir = -1;
+let D, H, view = 'stocks', universe = 'all', page = 0, hPage = 0, sortKey = 'pct_from_200w', sortDir = 1, hSortKey = 'date', hSortDir = -1;
+try { const v = localStorage.getItem('ema200w-view'); if (v === 'markets' || v === 'stocks') view = v; } catch {}
 const PAGE = 50;
 
 Promise.all([fetch('data/latest.json').then(r => r.json()), fetch('data/history.json').then(r => r.json()).catch(() => ({runs: [], live_signals: {}}))])
@@ -206,10 +219,13 @@ Promise.all([fetch('data/latest.json').then(r => r.json()), fetch('data/history.
 function init() {
   const p = D.params;
   $('#meta').textContent = `Updated ${D.generated.replace('T', ' ')} · ${D.stocks.length} stocks · ${p.mode === 'touch' ? 'touch & hold' : 'reclaim'}, ±${p.band_pct}% band, regime ≥${p.regime_min}w`;
-  const tabs = [['all', 'All'], ...Object.entries(D.universes).map(([k, v]) => [k, v.label])];
+  const tabs = [['all', 'All'], ...Object.entries(D.universes).filter(([k]) => k !== 'markets').map(([k, v]) => [k, v.label])];
   $('#tabs').innerHTML = tabs.map(([k, l]) => `<button class="tab" role="tab" data-u="${k}" aria-selected="${k === universe}">${l}</button>`).join('');
   $('#tabs').onclick = e => { const b = e.target.closest('.tab'); if (!b) return; universe = b.dataset.u; page = 0; hPage = 0; render(); };
-  const sectors = [...new Set(D.stocks.map(s => s.sector).filter(Boolean))].sort();
+  $('#views').onclick = e => { const b = e.target.closest('.view'); if (!b) return; view = b.dataset.v; hPage = 0; try { localStorage.setItem('ema200w-view', view); } catch {} render(); };
+  $('#expMkt').onclick = () => exportTV([[`200W markets ${D.generated.slice(0, 10)}`, lastMkt]], `200W-markets-${D.generated.slice(0, 10)}.txt`);
+  if (!D.universes.markets) $('#views').style.display = 'none';
+  const sectors = [...new Set(D.stocks.filter(s => s.universe !== 'markets').map(s => s.sector).filter(Boolean))].sort();
   $('#sector').innerHTML += sectors.map(s => `<option>${esc(s)}</option>`).join('');
   ['#q', '#sector', '#filt', '#onlyRegime'].forEach(s => $(s).addEventListener('input', () => { page = 0; renderAll(); }));
   ['#hMode', '#hLive', '#hMature'].forEach(s => $(s).addEventListener('input', () => { hPage = 0; renderHist(); }));
@@ -229,12 +245,23 @@ function dedupe() {
   for (const s of D.stocks) { const k = s.symbol; if (m.has(k)) m.get(k).unis.push(s.universe); else m.set(k, Object.assign({}, s, {unis: [s.universe]})); }
   ALL = [...m.values()];
 }
-const stocks = () => { if (!ALL) dedupe(); return universe === 'all' ? ALL : ALL.filter(s => s.unis.includes(universe)); };
-const uniChips = s => (s.unis || [s.universe]).map(u => `<span class="chip">${uniShort(u)}</span>`).join('');
+const effUni = () => view === 'markets' ? 'markets' : universe;
+const stocks = () => {
+  if (!ALL) dedupe();
+  if (view === 'markets') return ALL.filter(s => s.unis.includes('markets'));
+  const st = ALL.filter(s => !s.unis.includes('markets'));
+  return universe === 'all' ? st : st.filter(s => s.unis.includes(universe));
+};
+let lastMkt = [];
+const uniChips = s => (s.unis || [s.universe]).filter(u => u !== 'markets').map(u => `<span class="chip">${uniShort(u)}</span>`).join('');
 
 function render() {
-  document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.u === universe));
-  renderBreadth(); renderSignals(); renderApproach(); renderAll(); renderHist();
+  document.body.className = 'view-' + view;
+  document.querySelectorAll('#tabs .tab').forEach(b => b.setAttribute('aria-selected', b.dataset.u === universe));
+  document.querySelectorAll('#views .tab').forEach(b => b.setAttribute('aria-selected', b.dataset.v === view));
+  renderBreadth();
+  if (view === 'markets') renderMarkets(); else { renderSignals(); renderApproach(); renderAll(); }
+  renderHist();
 }
 
 /* ---------- breadth ---------- */
@@ -246,16 +273,17 @@ function renderBreadth() {
     sig: S.filter(s => s.weeks_since_signal != null && s.weeks_since_signal <= 4).length,
     med: median(S.map(s => s.pct_from_200w)),
   };
-  $('#breadthLabel').textContent = universe === 'all' ? 'all universes' : D.universes[universe].label;
+  $('#breadthLabel').textContent = view === 'markets' ? 'indexes, commodities, rates & crypto' : universe === 'all' ? 'all stock universes' : D.universes[universe].label;
   $('#tiles').innerHTML = [
     [b.regime.toFixed(0) + '%', 'regime on (200D > 200W)'], [b.band.toFixed(0) + '%', 'in the band now'],
     [b.below.toFixed(0) + '%', 'below 200W EMA'], [b.sig, 'signals, last 4 weeks'], [fmt(b.med), 'median % from 200W'],
   ].map(([v, l]) => `<div class="tile"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
   const runs = H.runs.slice(-60);
   const series = [['regime_on_pct', 'var(--s1)'], ['in_band_pct', 'var(--s2)'], ['below_200w_pct', 'var(--s3)']];
-  const val = (r, k) => universe === 'all'
-    ? avg(Object.values(r.universes).map(u => u[k]).filter(v => v != null))
-    : r.universes[universe]?.[k];
+  const eu = effUni();
+  const val = (r, k) => eu === 'all'
+    ? avg(Object.entries(r.universes).filter(([u]) => u !== 'markets').map(([, u]) => u[k]).filter(v => v != null))
+    : r.universes[eu]?.[k];
   const pts = series.map(([k]) => runs.map(r => val(r, k)));
   drawLines($('#hist'), runs.map(r => r.ts.slice(0, 10)), pts, series.map(s => s[1]), ['regime on', 'in band', 'below 200W']);
   $('#breadthHelp').innerHTML = runs.length < 3
@@ -304,7 +332,7 @@ const slopeCell = s => s.slope_200w == null ? '–' : `<span class="${s.slope_20
 const depthCell = s => s.pct_from_52w_high == null ? '–' : `<span class="${s.pct_from_52w_high <= -29 ? 'pos' : s.pct_from_52w_high > -14 ? 'neg' : ''}">${fmt(s.pct_from_52w_high)}</span>`;
 const statusChip = s => status(s) ? `<span class="chip st">${esc(status(s))}</span>` : '';
 const symCell = s => `<td class="l"><span class="sym">${esc(s.symbol)}</span>${uniChips(s)}${statusChip(s)}<div class="nm">${esc(s.name)}</div></td>`;
-const uniShort = u => ({sp500: 'S&P', nasdaq100: 'NDX', ftse100: 'FTSE'})[u] || u;
+const uniShort = u => ({sp500: 'S&P', nasdaq100: 'NDX', ftse100: 'FTSE', markets: 'MKT'})[u] || u;
 
 const SHOW = 10, expanded = {};
 let lastSig = [], lastApp = [];
@@ -342,6 +370,23 @@ function renderSignals() {
   if (!S.length) { t.innerHTML = '<tr><td class="empty l">No signals in the last 4 weeks.</td></tr>'; return; }
   collapsible(t, 'sig', S, [[null, 'Stock', 'l'], ['weeks_since_signal', 'When'], ['pct_from_200w', '% from 200W'], ['low_pct_from_200w', 'Low tag'], ['slope_200w', '200W slope'], ['pct_from_52w_high', 'Off 52w hi'], ['ret_4w', '4w'], [null, 'Chart']],
     s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${s.weeks_since_signal ? s.weeks_since_signal + 'w ago' : 'now'}</td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}</td><td>${fmt(s.low_pct_from_200w)}</td><td>${slopeCell(s)}</td><td>${depthCell(s)}</td><td class="${cls(s.ret_4w)}">${fmt(s.ret_4w)}</td><td>${spark(s, 140, 30)}</td></tr>`);
+}
+let mktSort = ['pct_from_200w', 1];
+const MCOLS = [[null, 'Instrument', 'l'], ['close', 'Last'], ['pct_from_200w', '% from 200W'], ['pct_to_band', 'Above band'], ['regime_on', 'Regime'], ['weeks_since_signal', 'Last signal'], ['slope_200w', '200W slope'], ['pct_from_52w_high', 'Off 52w hi'], ['ret_4w', '4w'], ['ret_12w', '12w'], [null, 'Chart']];
+function renderMarkets() {
+  const S = stocks(); lastMkt = S;
+  const [sk, sd] = mktSort;
+  const order = ['Index', 'Commodity', 'Rates & credit', 'Crypto'];
+  const groups = order.filter(g => S.some(s => s.sector === g));
+  const t = $('#mktTable');
+  if (!S.length) { t.innerHTML = '<tr><td class="empty l">No market data yet — the next scan will fill this in.</td></tr>'; return; }
+  let html = '<thead><tr>' + MCOLS.map(([k, l, c]) => `<th class="${c || ''}" ${k ? `data-k="${k}"` : 'data-nosort'} ${k === sk ? `data-sorted="${sd > 0 ? 'asc' : 'desc'}"` : ''}>${l}</th>`).join('') + '</tr></thead><tbody>';
+  for (const g of groups) {
+    const rows = S.filter(s => s.sector === g).sort((a, b) => cmp(a[sk], b[sk]) * sd);
+    html += `<tr class="grp"><td colspan="${MCOLS.length}" class="l">${g}</td></tr>` + rows.map(s => `<tr data-sym="${s.symbol}"><td class="l"><span class="sym">${esc(s.name)}</span>${statusChip(s)}<div class="nm">${esc(s.symbol)}</div></td><td>${s.close}</td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}${s.in_band ? '<span class="chip band">band</span>' : ''}${s.signal_now ? '<span class="chip sig">signal</span>' : ''}</td><td>${s.pct_to_band > 0 ? fmt(s.pct_to_band, 1, false) : '–'}</td><td>${s.regime_on ? `<span class="chip sig">on ${s.regime_weeks ?? ''}w</span>` : '<span class="chip off">off</span>'}</td><td>${s.weeks_since_signal == null ? '–' : s.weeks_since_signal + 'w'}</td><td>${slopeCell(s)}</td><td>${depthCell(s)}</td><td class="${cls(s.ret_4w)}">${fmt(s.ret_4w)}</td><td class="${cls(s.ret_12w)}">${fmt(s.ret_12w)}</td><td>${spark(s, 140, 30)}</td></tr>`).join('');
+  }
+  t.innerHTML = html + '</tbody>';
+  t.onclick = e => { const th = e.target.closest('th[data-k]'); if (th) { const k = th.dataset.k; mktSort = [k, mktSort[0] === k ? -mktSort[1] : 1]; renderMarkets(); return; } rowClick(e); };
 }
 function renderApproach() {
   const S = stocks().filter(s => s.regime_on && !s.in_band && s.pct_to_band > 0 && !(s.weeks_since_signal != null && s.weeks_since_signal <= 4))
@@ -389,7 +434,8 @@ function renderHist() {
   const mode = $('#hMode').value, live = $('#hLive').checked, mature = $('#hMature').checked;
   const liveKeys = new Set(Object.values(H.live_signals).map(v => `${v.symbol}|${v.week}|${v.mode}`));
   const seen = new Set();
-  let S = D.signals.filter(r => (universe === 'all' || r.universe === universe) && (!mode || r.mode === mode) && (universe !== 'all' || !seen.has(r.symbol + r.date + r.mode) && seen.add(r.symbol + r.date + r.mode))
+  const eu = effUni();
+  let S = D.signals.filter(r => (eu === 'all' ? r.universe !== 'markets' : r.universe === eu) && (!mode || r.mode === mode) && (eu !== 'all' || !seen.has(r.symbol + r.date + r.mode) && seen.add(r.symbol + r.date + r.mode))
     && (!live || liveKeys.has(`${r.symbol}|${r.date}|${r.mode}`)) && (!mature || r.fwd_26w != null));
   const stat = k => { const v = S.map(r => r[k]).filter(x => x != null); return v.length ? {avg: avg(v), win: 100 * v.filter(x => x > 0).length / v.length, n: v.length} : null; };
   const s4 = stat('fwd_4w'), s12 = stat('fwd_12w'), s26 = stat('fwd_26w'), dd = stat('mdd_26w');
@@ -416,8 +462,8 @@ function openDrawer(sym) {
   const n = notes[sym] || {};
   const d = $('#drawer');
   d.innerHTML = `<button class="btn close" id="dclose" aria-label="Close">✕</button>
-    <h3>${esc(s.symbol)} ${uniChips(s)}</h3>
-    <div class="sub">${esc(s.name)}${s.sector ? ' · ' + esc(s.sector) : ''} · <a target="_blank" rel="noopener" href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(s.tv)}&interval=W">Open weekly chart in TradingView ↗</a></div>
+    <h3>${s.universe === 'markets' ? esc(s.name) : esc(s.symbol)} ${uniChips(s)}</h3>
+    <div class="sub">${s.universe === 'markets' ? esc(s.symbol) : esc(s.name)}${s.sector ? ' · ' + esc(s.sector) : ''} · <a target="_blank" rel="noopener" href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(s.tv)}&interval=W">Open weekly chart in TradingView ↗</a></div>
     <div class="legend"><span><i style="background:var(--ink)"></i>Close</span><span><i style="background:var(--s1)"></i>200W EMA</span><span><i style="background:var(--band);height:8px"></i>±${D.params.band_pct}% band</span><span><i style="background:var(--s3);height:6px;width:6px;border-radius:50%"></i>Signal</span></div>
     <svg class="big" id="bigChart"></svg>
     <div class="kv">
