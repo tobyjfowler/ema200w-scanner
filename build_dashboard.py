@@ -29,7 +29,8 @@ SIGNAL_LOOKBACK_W = 260    # how far back to list historic signals (5 years)
 FWD = (4, 12, 26)          # forward-return horizons in weeks
 CLUSTER_GAP = 8            # weeks without a signal before a new one counts as a fresh setup
 
-UNIVERSE_LABEL = {"sp500": "S&P 500", "nasdaq100": "Nasdaq 100", "ftse100": "FTSE 100", "markets": "Markets"}
+UNIVERSE_LABEL = {"sp500": "S&P 500", "nasdaq100": "Nasdaq 100", "sp400": "S&P 400", "ftse100": "FTSE 100", "ftse250": "FTSE 250",
+                  "watchlist": "Watchlist", "markets": "Markets"}
 
 # Indexes, commodities, rates and crypto: Yahoo symbol -> (name, category, TradingView symbol)
 MARKETS = {
@@ -109,6 +110,23 @@ def scan_universe(name: str, args, exchanges: dict[str, str]) -> tuple[list[dict
         tickers = list(MARKETS)
         meta = {k: {"name": v[0], "sector": v[1]} for k, v in MARKETS.items()}
         tv_override = {k: v[2] for k, v in MARKETS.items()}
+    elif name == "watchlist":
+        # watchlist.txt in the repo root: one Yahoo symbol per line, optional "# comment".
+        # Lines like "SYM, Company name" set the display name.
+        if not os.path.exists("watchlist.txt"):
+            return [], []
+        tickers, meta, tv_override = [], {}, {}
+        for ln in open("watchlist.txt"):
+            ln = ln.split("#")[0].strip()
+            if not ln:
+                continue
+            sym, _, nm = ln.partition(",")
+            sym = sym.strip().upper()
+            tickers.append(sym)
+            meta[sym] = {"name": nm.strip(), "sector": "Watchlist"}
+        if not tickers:
+            return [], []
+        exchanges.update(load_exchanges([t for t in tickers if not t.endswith(".L")]))
     else:
         try:
             tickers = load_universe(name)
@@ -214,7 +232,7 @@ def breadth(stocks: list[dict]) -> dict:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--universes", default="sp500,nasdaq100,ftse100,markets")
+    ap.add_argument("--universes", default="sp500,nasdaq100,sp400,ftse100,ftse250,watchlist,markets")
     ap.add_argument("--mode", choices=["touch", "reclaim"], default="touch")
     ap.add_argument("--band", type=float, default=3.0)
     ap.add_argument("--regime-min", type=int, default=2)

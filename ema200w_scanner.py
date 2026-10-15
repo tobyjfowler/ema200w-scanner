@@ -167,7 +167,11 @@ _UNIVERSE_URL = {
                   "https://en.wikipedia.org/wiki/Nasdaq-100"],
     "ftse100": ["https://en.wikipedia.org/wiki/FTSE_100_Index",
                 "https://en.wikipedia.org/wiki/List_of_FTSE_100_companies"],
+    "sp400": ["https://en.wikipedia.org/wiki/List_of_S%26P_400_companies",
+              "https://en.wikipedia.org/wiki/S%26P_400"],
+    "ftse250": ["https://en.wikipedia.org/wiki/FTSE_250_Index"],
 }
+UK_UNIVERSES = {"ftse100", "ftse250"}
 
 
 def _constituents_any(name: str) -> tuple[pd.DataFrame, str]:
@@ -183,7 +187,7 @@ def _constituents_any(name: str) -> tuple[pd.DataFrame, str]:
 
 def _yahoo(sym: str, name: str) -> str:
     sym = str(sym).strip()
-    if name == "ftse100":
+    if name in UK_UNIVERSES:
         return sym.replace(".", "") + ".L"
     return sym.replace(".", "-")     # BRK.B -> BRK-B
 
@@ -270,7 +274,7 @@ def push(message: str):
 # --------------------------------------------------------------------------- #
 def main():
     ap = argparse.ArgumentParser(description="200W EMA pullback scanner")
-    ap.add_argument("--universe", choices=["sp500", "nasdaq100", "ftse100"], default="sp500")
+    ap.add_argument("--universe", choices=["sp500", "nasdaq100", "ftse100", "sp400", "ftse250"], default="sp500")
     ap.add_argument("--tickers-file", help="text file, one symbol per line (overrides --universe)")
     ap.add_argument("--mode", choices=["touch", "reclaim"], default="touch",
                     help="touch = Touch & hold, reclaim = close back above 200W")

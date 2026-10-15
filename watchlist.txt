@@ -1,0 +1,5 @@
+# Extra stocks to scan alongside the indexes — one Yahoo symbol per line.
+# Optional display name after a comma. Lines starting with # are ignored.
+# US:  AAPL          UK:  SHEL.L         Other Yahoo suffixes work too (.DE, .PA, .TO ...)
+#
+# JEPQ.L, JPMorgan Nasdaq Equity Premium Income UCITS

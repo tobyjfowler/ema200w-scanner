@@ -219,7 +219,8 @@ Promise.all([fetch('data/latest.json').then(r => r.json()), fetch('data/history.
 function init() {
   const p = D.params;
   $('#meta').textContent = `Updated ${D.generated.replace('T', ' ')} · ${D.stocks.length} stocks · ${p.mode === 'touch' ? 'touch & hold' : 'reclaim'}, ±${p.band_pct}% band, regime ≥${p.regime_min}w`;
-  const tabs = [['all', 'All'], ...Object.entries(D.universes).filter(([k]) => k !== 'markets').map(([k, v]) => [k, v.label])];
+  const order = ['sp500', 'nasdaq100', 'sp400', 'ftse100', 'ftse250', 'watchlist'];
+  const tabs = [['all', 'All'], ...Object.entries(D.universes).filter(([k]) => k !== 'markets').sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0])).map(([k, v]) => [k, v.label])];
   $('#tabs').innerHTML = tabs.map(([k, l]) => `<button class="tab" role="tab" data-u="${k}" aria-selected="${k === universe}">${l}</button>`).join('');
   $('#tabs').onclick = e => { const b = e.target.closest('.tab'); if (!b) return; universe = b.dataset.u; page = 0; hPage = 0; render(); };
   $('#views').onclick = e => { const b = e.target.closest('.view'); if (!b) return; view = b.dataset.v; hPage = 0; try { localStorage.setItem('ema200w-view', view); } catch {} render(); };
@@ -332,7 +333,7 @@ const slopeCell = s => s.slope_200w == null ? '–' : `<span class="${s.slope_20
 const depthCell = s => s.pct_from_52w_high == null ? '–' : `<span class="${s.pct_from_52w_high <= -29 ? 'pos' : s.pct_from_52w_high > -14 ? 'neg' : ''}">${fmt(s.pct_from_52w_high)}</span>`;
 const statusChip = s => status(s) ? `<span class="chip st">${esc(status(s))}</span>` : '';
 const symCell = s => `<td class="l"><span class="sym">${esc(s.symbol)}</span>${uniChips(s)}${statusChip(s)}<div class="nm">${esc(s.name)}</div></td>`;
-const uniShort = u => ({sp500: 'S&P', nasdaq100: 'NDX', ftse100: 'FTSE', markets: 'MKT'})[u] || u;
+const uniShort = u => ({sp500: 'S&P', nasdaq100: 'NDX', sp400: 'S&P400', ftse100: 'FTSE', ftse250: 'F250', watchlist: 'WL', markets: 'MKT'})[u] || u;
 
 const SHOW = 10, expanded = {};
 let lastSig = [], lastApp = [];
