@@ -107,6 +107,7 @@ def main():
 
     out = f"research/history_{sym.replace('=', '').replace('^', '').replace('.', '_')}_{length}D.md"
     os.makedirs("research", exist_ok=True)
+    d[["Close", "ema"]].round(3).to_csv(out.replace(".md", ".csv"), index_label="date")
     open(out, "w").write("\n".join(L) + "\n")
     print("\n".join(L))
 
