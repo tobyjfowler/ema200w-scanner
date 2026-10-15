@@ -147,19 +147,32 @@ def _find_col(t: pd.DataFrame, *names) -> str | None:
 
 
 def _constituents(url: str, ticker_names=("ticker", "symbol", "epic")) -> tuple[pd.DataFrame, str]:
-    """Largest table on the page that has a ticker-like column."""
-    best = None
+    """The current-constituents table on a page: the first table with a ticker column AND a
+    company/name column and >= 50 rows (Wikipedia lists current members before the changes
+    table, whose ticker columns are labelled 'Added'/'Removed'). Falls back to the largest
+    ticker-bearing table."""
+    best, fallback = None, None
     for t in _tables(url):
-        col = _find_col(t, *ticker_names)
-        if col and len(t) >= 50 and (best is None or len(t) > len(best[0])):
-            best = (t, col)
-    if best is None:
+        cols = [str(c).lower() for c in t.columns]
+        tick = next((c for c, cl in zip(t.columns, cols) if any(n in cl for n in ticker_names)
+                     and not any(x in cl for x in ("added", "removed", "old", "new"))), None)
+        if not tick or len(t) < 50:
+            continue
+        has_name = any(any(n in cl for n in ("security", "company", "name", "constituent")) for cl in cols)
+        if has_name and best is None:
+            best = (t, tick)
+        if fallback is None or len(t) > len(fallback[0]):
+            fallback = (t, tick)
+    if best is None and fallback is None:
         found = "; ".join(f"{len(t)} rows: {list(t.columns)[:6]}" for t in _tables(url) if len(t) >= 20)
         raise RuntimeError(f"no constituents table found at {url}. Tables seen: {found}")
-    return best
+    t, tick = best or fallback
+    # drop footnote markers like "VSCO (NOW VSXY)[78]" -> "VSCO"
+    t = t.copy()
+    t[tick] = t[tick].astype(str).str.replace(r"\[.*?\]", "", regex=True).str.split(r"[\s(]").str[0]
+    return t, tick
 
 
-# candidate pages per universe, tried in order
 _UNIVERSE_URL = {
     "sp500": ["https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
               "https://www.slickcharts.com/sp500"],

@@ -141,6 +141,7 @@ def scan_universe(name: str, args, exchanges: dict[str, str]) -> tuple[list[dict
     print(f"[{name}] data for {len(data)}", file=sys.stderr)
 
     stocks, signals = [], []
+    hist_flags = {}   # symbol -> {week: (above_200w, regime_on, in_band)} for the markets breadth history
     for sym, daily in data.items():
         wk = evaluate(daily, band_pct=args.band, mode=args.mode, regime_min=args.regime_min)
         if wk is None or wk["emaW"].isna().iloc[-1]:
@@ -152,6 +153,10 @@ def scan_universe(name: str, args, exchanges: dict[str, str]) -> tuple[list[dict
         last = wk.iloc[-1]
         m = meta.get(sym, {})
 
+        if name == "markets":
+            t5 = wk.tail(260)
+            hist_flags[sym] = {d.strftime("%Y-%m-%d"): (int(c > e), int(r), int(b))
+                               for d, c, e, r, b in zip(t5.index, t5["Close"], t5["emaW"], t5["regime_on"], t5["in_band"])}
         tail = wk.tail(SPARK_WEEKS)
         spark = {d.strftime("%Y-%m-%d"): (r2(c), r2(e), int(sg))
                  for d, c, e, sg in zip(tail.index, tail["Close"], tail["emaW"], tail["signal"])}
@@ -213,6 +218,17 @@ def scan_universe(name: str, args, exchanges: dict[str, str]) -> tuple[list[dict
                 end = min(i + 26, len(closes) - 1)
                 rec["mdd_26w"] = r2((closes[i:end + 1].min() / closes[i] - 1) * 100)
                 signals.append(rec)
+    if name == "markets" and hist_flags:
+        weeks = sorted({w for f in hist_flags.values() for w in f})
+        series = []
+        for w in weeks:
+            vals = [f[w] for f in hist_flags.values() if w in f]
+            if len(vals) >= 10:
+                n = len(vals)
+                series.append({"w": w, "above": round(100 * sum(v[0] for v in vals) / n, 1),
+                               "regime": round(100 * sum(v[1] for v in vals) / n, 1),
+                               "band": round(100 * sum(v[2] for v in vals) / n, 1), "n": n})
+        scan_universe.markets_breadth = series
     return stocks, signals
 
 
@@ -291,6 +307,7 @@ def main():
     latest = {
         "generated": now.strftime("%Y-%m-%dT%H:%MZ"),
         "weeks": weeks,
+        "markets_breadth": getattr(scan_universe, "markets_breadth", []),
         "params": {"mode": args.mode, "band_pct": args.band, "regime_min": args.regime_min,
                    "len_w": 200, "len_d": 200},
         "universes": per_universe,

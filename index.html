@@ -47,7 +47,12 @@ h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
 .tab[aria-selected="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); }
 #views { border-right: 1px solid var(--border); padding-right: 14px; margin-right: -6px; } #views .tab { font-weight: 600; }
 body.view-markets #tabs, body.view-markets section#sigSection, body.view-markets section#appSection, body.view-markets section#allSection { display: none !important; }
-body.view-stocks section#mktSection { display: none !important; }
+body.view-stocks section#mktSection, body.view-stocks section#regimeSection, body.view-stocks section#rotSection { display: none !important; }
+.regime { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.rg { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; border-left: 4px solid var(--muted); }
+.rg.on { border-left-color: var(--good); } .rg.off { border-left-color: var(--bad); } .rg.mixed { border-left-color: #c98500; }
+.rg .t { font-weight: 600; } .rg .d { color: var(--ink-2); font-size: 13px; margin-top: 2px; } .rg .n { color: var(--muted); font-size: 12px; margin-top: 4px; }
+.bar { height: 6px; border-radius: 3px; background: var(--grid); position: relative; margin-top: 6px; } .bar i { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: var(--s1); }
 .grp td { background: var(--surface-2); color: var(--ink-2); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; cursor: default; }
 .tab:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
 section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
@@ -144,6 +149,17 @@ svg.spark { display: block; } .spark .c { fill: none; stroke: var(--ink); stroke
   <section id="appSection">
     <div class="h2row"><h2>Approaching the band <small>regime on, closest to the band first</small></h2><button class="btn" id="expApp" title="Download a TradingView watchlist file">⇩ TV watchlist</button></div>
     <div class="tablewrap"><table id="appTable"></table></div>
+  </section>
+
+  <section id="regimeSection">
+    <h2>Regime read</h2>
+    <div class="regime" id="regime"></div>
+  </section>
+
+  <section id="rotSection">
+    <h2>Index rotation <small>ranked by distance from the 200W · steeper slope = stronger trend</small></h2>
+    <div class="tablewrap"><table id="rotTable"></table></div>
+    <p class="help">Top of the list is most extended above its 200W; bottom is closest to (or below) support. Change between the two ends over a few weeks is the rotation.</p>
   </section>
 
   <section id="mktSection">
@@ -279,6 +295,13 @@ function renderBreadth() {
     [b.regime.toFixed(0) + '%', 'regime on (200D > 200W)'], [b.band.toFixed(0) + '%', 'in the band now'],
     [b.below.toFixed(0) + '%', 'below 200W EMA'], [b.sig, 'signals, last 4 weeks'], [fmt(b.med), 'median % from 200W'],
   ].map(([v, l]) => `<div class="tile"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+  if (view === 'markets' && D.markets_breadth && D.markets_breadth.length > 10) {
+    const mb = D.markets_breadth;
+    drawLines($('#hist'), mb.map(r => r.w), [mb.map(r => r.regime), mb.map(r => r.band), mb.map(r => 100 - r.above)], ['var(--s1)', 'var(--s2)', 'var(--s3)'], ['regime on', 'in band', 'below 200W']);
+    const last = mb.at(-1), lo = mb.reduce((a, r) => r.above < a.above ? r : a, mb[0]);
+    $('#breadthHelp').innerHTML = `Cross-asset breadth over the last ${Math.round(mb.length / 52)} years, from weekly closes of the ${last.n} instruments. ${last.above.toFixed(0)}% are above their 200W now; the low point was ${lo.above.toFixed(0)}% in the week of ${lo.w}. When this collapses below ~40% it has usually marked the depths of a broad sell-off rather than its start.`;
+    return;
+  }
   const runs = H.runs.slice(-60);
   const series = [['regime_on_pct', 'var(--s1)'], ['in_band_pct', 'var(--s2)'], ['below_200w_pct', 'var(--s3)']];
   const eu = effUni();
@@ -374,8 +397,39 @@ function renderSignals() {
 }
 let mktSort = ['pct_from_200w', 1];
 const MCOLS = [[null, 'Instrument', 'l'], ['close', 'Last'], ['pct_from_200w', '% from 200W'], ['pct_to_band', 'Above band'], ['regime_on', 'Regime'], ['weeks_since_signal', 'Last signal'], ['slope_200w', '200W slope'], ['pct_from_52w_high', 'Off 52w hi'], ['ret_4w', '4w'], ['ret_12w', '12w'], [null, 'Chart']];
+function renderRegime(S) {
+  const by = c => S.filter(s => s.sector === c);
+  const card = (title, rows, note) => {
+    const n = rows.length, on = rows.filter(s => s.regime_on).length, above = rows.filter(s => s.pct_from_200w > 0).length;
+    const med = median(rows.map(s => s.pct_from_200w));
+    const cls = n === 0 ? '' : on === n ? 'on' : on === 0 ? 'off' : 'mixed';
+    return `<div class="rg ${cls}"><div class="t">${title}</div><div class="d">${on}/${n} regime on · ${above}/${n} above 200W · median ${fmt(med)}</div><div class="bar"><i style="left:0;width:${n ? 100 * on / n : 0}%"></i></div><div class="n">${note}</div></div>`;
+  };
+  const eq = by('Index').filter(s => s.symbol !== 'DX-Y.NYB'), dx = S.find(s => s.symbol === 'DX-Y.NYB'), cm = by('Commodity'), rc = by('Rates & credit'), cr = by('Crypto');
+  const tlt = rc.find(s => s.symbol === 'TLT'), hyg = rc.find(s => s.symbol === 'HYG');
+  const risk = eq.filter(s => s.regime_on).length / Math.max(1, eq.length);
+  const headline = risk >= 0.8 ? 'Risk-on: equity indexes broadly in uptrend regimes' : risk >= 0.5 ? 'Mixed: equity regimes diverging across regions' : 'Risk-off: most equity indexes have lost their uptrend regime';
+  $('#regime').innerHTML = `<div class="rg ${risk >= 0.8 ? 'on' : risk >= 0.5 ? 'mixed' : 'off'}" style="grid-column:1/-1"><div class="t">${headline}</div><div class="n">${eq.filter(s => !s.regime_on).map(s => s.name).join(', ') || 'Every index'} ${eq.filter(s => !s.regime_on).length ? 'currently off' : 'on'} · dollar index ${dx ? fmt(dx.pct_from_200w) + ' from its 200W, regime ' + (dx.regime_on ? 'on' : 'off') : 'n/a'}</div></div>` +
+    card('Equity indexes', eq, `Most extended: ${top(eq, 1)[0]} · closest to support: ${top(eq, -1)[0]}`) +
+    card('Commodities', cm, `Leaders: ${top(cm, 1, 2).join(', ')} · laggards: ${top(cm, -1, 2).join(', ')}`) +
+    card('Rates & credit', rc, `${tlt ? 'Long bonds ' + fmt(tlt.pct_from_200w) + ' vs 200W' : ''}${hyg ? ' · high yield ' + fmt(hyg.pct_from_200w) : ''}${tlt && hyg && !tlt.regime_on && hyg.regime_on ? ' — credit fine, duration not' : ''}`) +
+    card('Crypto', cr, cr.map(s => `${s.name} ${fmt(s.pct_from_200w)}`).join(' · '));
+}
+const top = (rows, dir, k = 1) => [...rows].sort((a, b) => (b.pct_from_200w - a.pct_from_200w) * dir).slice(0, k).map(s => `${s.name} (${fmt(s.pct_from_200w)})`);
+let rotSort = ['pct_from_200w', -1];
+function renderRotation(S) {
+  const idx = S.filter(s => s.sector === 'Index');
+  const [sk, sd] = rotSort;
+  idx.sort((a, b) => cmp(a[sk], b[sk]) * sd);
+  const cols = [[null, 'Index', 'l'], ['pct_from_200w', '% from 200W'], ['slope_200w', '200W slope'], ['regime_on', 'Regime'], ['pct_from_52w_high', 'Off 52w hi'], ['ret_4w', '4w'], ['ret_12w', '12w'], ['weeks_since_signal', 'Last signal']];
+  const mx = Math.max(...idx.map(s => Math.abs(s.pct_from_200w)), 1);
+  $('#rotTable').innerHTML = '<thead><tr>' + cols.map(([k, l, c]) => `<th class="${c || ''}" ${k ? `data-k="${k}"` : 'data-nosort'} ${k === sk ? `data-sorted="${sd > 0 ? 'asc' : 'desc'}"` : ''}>${l}</th>`).join('') + '</tr></thead><tbody>' +
+    idx.map(s => `<tr data-sym="${s.symbol}"><td class="l"><span class="sym">${esc(s.name)}</span><div class="bar" style="width:160px"><i style="left:${s.pct_from_200w < 0 ? 50 + 50 * s.pct_from_200w / mx : 50}%;width:${50 * Math.abs(s.pct_from_200w) / mx}%;background:${s.pct_from_200w < 0 ? 'var(--bad)' : 'var(--s1)'}"></i></div></td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}</td><td>${slopeCell(s)}</td><td>${s.regime_on ? `<span class="chip sig">on ${s.regime_weeks ?? ''}w</span>` : '<span class="chip off">off</span>'}</td><td>${depthCell(s)}</td><td class="${cls(s.ret_4w)}">${fmt(s.ret_4w)}</td><td class="${cls(s.ret_12w)}">${fmt(s.ret_12w)}</td><td>${s.weeks_since_signal == null ? '–' : s.weeks_since_signal + 'w'}</td></tr>`).join('') + '</tbody>';
+  $('#rotTable').onclick = e => { const th = e.target.closest('th[data-k]'); if (th) { const k = th.dataset.k; rotSort = [k, rotSort[0] === k ? -rotSort[1] : -1]; renderRotation(stocks()); return; } rowClick(e); };
+}
 function renderMarkets() {
   const S = stocks(); lastMkt = S;
+  renderRegime(S); renderRotation(S);
   const [sk, sd] = mktSort;
   const order = ['Index', 'Commodity', 'Rates & credit', 'Crypto'];
   const groups = order.filter(g => S.some(s => s.sector === g));
