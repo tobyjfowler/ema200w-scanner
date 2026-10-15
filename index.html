@@ -49,6 +49,7 @@ h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
 section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
 .h2row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; } .h2row h2 { margin: 0; }
 h2 { font-size: 14px; margin: 0 0 10px; color: var(--ink-2); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+}
 tfoot td { border-bottom: 0; padding-top: 10px; } .btn.more { width: 100%; }
 h2 small { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--muted); margin-left: 8px; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
@@ -63,12 +64,13 @@ section { min-width: 0; }
 .controls label { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-2); font-size: 13px; }
 .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
-th, td { padding: 6px 8px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--grid); }
+th, td { padding: 6px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--grid); }
 th { color: var(--muted); font-weight: 500; font-size: 12px; cursor: pointer; user-select: none; position: sticky; top: 0; background: var(--surface); }
 th.l, td.l { text-align: left; }
 th[data-sorted="asc"]::after { content: " ▲"; font-size: 9px; } th[data-sorted="desc"]::after { content: " ▼"; font-size: 9px; }
 tbody tr { cursor: pointer; } tbody tr:hover { background: var(--surface-2); }
-.sym { font-weight: 600; } .nm { color: var(--muted); font-size: 12px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+.sym { font-weight: 600; } .nm { color: var(--muted); font-size: 12px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.chip + .chip { margin-left: 3px; }
 .pos { color: var(--good); } .neg { color: var(--bad); }
 .chip { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); margin-left: 4px; vertical-align: middle; }
 .chip.sig { background: var(--good-bg); color: var(--good); } .chip.band { background: var(--warn-bg); color: var(--ink); }
@@ -100,6 +102,11 @@ svg.spark { display: block; } .spark .c { fill: none; stroke: var(--ink); stroke
 .help { color: var(--muted); font-size: 12px; margin-top: 8px; }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 10px; }
 .stats .tile .v { font-size: 18px; }
+@media (max-width: 720px) {
+  #sigTable th:nth-child(4), #sigTable td:nth-child(4), #sigTable th:nth-child(7), #sigTable td:nth-child(7), #sigTable th:nth-child(8), #sigTable td:nth-child(8),
+  #appTable th:nth-child(3), #appTable td:nth-child(3), #appTable th:nth-child(6), #appTable td:nth-child(6), #appTable th:nth-child(7), #appTable td:nth-child(7), #appTable th:nth-child(8), #appTable td:nth-child(8) { display: none; }
+  th, td { padding: 6px 4px; font-size: 13px; white-space: normal; } th { font-size: 11px; line-height: 1.2; }
+  td.l { max-width: 120px; } .nm { max-width: 112px; } td.l .chip { display: none; } .h2row small { display: none; }
 </style>
 </head>
 <body>
@@ -122,16 +129,15 @@ svg.spark { display: block; } .spark .c { fill: none; stroke: var(--ink); stroke
     </div>
   </section>
 
-  <div class="row2">
-    <section>
-      <div class="h2row"><h2>Signals <small>last 4 weeks · click a row for detail</small></h2><button class="btn" id="expSig" title="Download a TradingView watchlist file">⇩ TV watchlist</button></div>
-      <div class="tablewrap"><table id="sigTable"></table></div>
-    </section>
-    <section>
-      <div class="h2row"><h2>Approaching the band <small>regime on, closest to the band first</small></h2><button class="btn" id="expApp" title="Download a TradingView watchlist file">⇩ TV watchlist</button></div>
-      <div class="tablewrap"><table id="appTable"></table></div>
-    </section>
-  </div>
+  <section>
+    <div class="h2row"><h2>Signals <small>last 4 weeks · click a row for detail</small></h2><button class="btn" id="expSig" title="Download a TradingView watchlist file">⇩ TV watchlist</button></div>
+    <div class="tablewrap"><table id="sigTable"></table></div>
+  </section>
+
+  <section>
+    <div class="h2row"><h2>Approaching the band <small>regime on, closest to the band first</small></h2><button class="btn" id="expApp" title="Download a TradingView watchlist file">⇩ TV watchlist</button></div>
+    <div class="tablewrap"><table id="appTable"></table></div>
+  </section>
 
   <section>
     <h2>All stocks <small id="count"></small></h2>
@@ -296,7 +302,7 @@ const status = s => notes[s.symbol]?.status;
 const slopeCell = s => s.slope_200w == null ? '–' : `<span class="${s.slope_200w >= 2.6 ? 'pos' : s.slope_200w < 0.6 ? 'neg' : ''}">${fmt(s.slope_200w)}</span>`;
 const depthCell = s => s.pct_from_52w_high == null ? '–' : `<span class="${s.pct_from_52w_high <= -29 ? 'pos' : s.pct_from_52w_high > -14 ? 'neg' : ''}">${fmt(s.pct_from_52w_high)}</span>`;
 const statusChip = s => status(s) ? `<span class="chip st">${esc(status(s))}</span>` : '';
-const symCell = s => `<td class="l"><span class="sym">${esc(s.symbol)}</span>${statusChip(s)}<div class="nm">${esc(s.name)}</div></td>`;
+const symCell = s => `<td class="l"><span class="sym">${esc(s.symbol)}</span>${uniChips(s)}${statusChip(s)}<div class="nm">${esc(s.name)}</div></td>`;
 const uniShort = u => ({sp500: 'S&P', nasdaq100: 'NDX', ftse100: 'FTSE'})[u] || u;
 
 const SHOW = 10, expanded = {};
@@ -325,8 +331,8 @@ function renderSignals() {
   lastSig = S;
   const t = $('#sigTable');
   if (!S.length) { t.innerHTML = '<tr><td class="empty l">No signals in the last 4 weeks.</td></tr>'; return; }
-  collapsible(t, 'sig', S, `<thead><tr><th class="l">Stock</th><th>When</th><th>% from 200W</th><th>200W slope</th><th>Off 52w hi</th><th>Chart</th></tr></thead>`,
-    s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${s.weeks_since_signal ? s.weeks_since_signal + 'w ago' : 'this week'} ${uniChips(s)}</td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}</td><td>${slopeCell(s)}</td><td>${depthCell(s)}</td><td>${spark(s, 100, 28)}</td></tr>`);
+  collapsible(t, 'sig', S, `<thead><tr><th class="l">Stock</th><th>When</th><th>% from 200W</th><th>Low tag</th><th>200W slope</th><th>Off 52w hi</th><th>4w</th><th>Chart</th></tr></thead>`,
+    s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${s.weeks_since_signal ? s.weeks_since_signal + 'w ago' : 'now'}</td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}</td><td>${fmt(s.low_pct_from_200w)}</td><td>${slopeCell(s)}</td><td>${depthCell(s)}</td><td class="${cls(s.ret_4w)}">${fmt(s.ret_4w)}</td><td>${spark(s, 140, 30)}</td></tr>`);
 }
 function renderApproach() {
   const S = stocks().filter(s => s.regime_on && !s.in_band && s.pct_to_band > 0 && !(s.weeks_since_signal != null && s.weeks_since_signal <= 4))
@@ -334,8 +340,8 @@ function renderApproach() {
   lastApp = S;
   const t = $('#appTable');
   if (!S.length) { t.innerHTML = '<tr><td class="empty l">Nothing approaching.</td></tr>'; return; }
-  collapsible(t, 'app', S, `<thead><tr><th class="l">Stock</th><th>Above band</th><th>200W slope</th><th>Off 52w hi</th><th>Chart</th></tr></thead>`,
-    s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${fmt(s.pct_to_band, 1, false)} ${uniChips(s)}</td><td>${slopeCell(s)}</td><td>${depthCell(s)}</td><td>${spark(s, 100, 28)}</td></tr>`);
+  collapsible(t, 'app', S, `<thead><tr><th class="l">Stock</th><th>Above band</th><th>% from 200W</th><th>200W slope</th><th>Off 52w hi</th><th>4w</th><th>12w</th><th>Chart</th></tr></thead>`,
+    s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${fmt(s.pct_to_band, 1, false)}</td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}</td><td>${slopeCell(s)}</td><td>${depthCell(s)}</td><td class="${cls(s.ret_4w)}">${fmt(s.ret_4w)}</td><td class="${cls(s.ret_12w)}">${fmt(s.ret_12w)}</td><td>${spark(s, 140, 30)}</td></tr>`);
 }
 
 const COLS = [
