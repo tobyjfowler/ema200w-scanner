@@ -257,12 +257,20 @@ def fetch_daily(tickers: list[str], years: int) -> dict[str, pd.DataFrame]:
             continue
         for t in batch:
             try:
-                df = data[t] if len(batch) > 1 else data
+                if isinstance(data.columns, pd.MultiIndex):
+                    # (ticker, field) when group_by="ticker"; (field, ticker) otherwise
+                    df = data[t] if t in data.columns.get_level_values(0) else data.xs(t, axis=1, level=1)
+                else:
+                    df = data
+                df = df.copy()
+                for c in ("Open", "High", "Low"):   # funds have NAV only
+                    if c not in df.columns or df[c].isna().all():
+                        df[c] = df["Close"]
                 df = df[["Open", "High", "Low", "Close"]].dropna(subset=["Close"])
                 if len(df):
                     out[t] = df
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"  {t}: {e}", file=sys.stderr)
         print(f"  fetched {min(i + chunk, len(tickers))}/{len(tickers)}", file=sys.stderr)
     return out
 
