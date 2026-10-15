@@ -1,2 +1,3 @@
 scan_*.csv
 __pycache__/
+research/slope_signals.csv
