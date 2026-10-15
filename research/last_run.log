@@ -1,2 +1,46 @@
   fetched 1/1
-no data for 0P0000TKZO.L
+# Vanguard LifeStrategy 100% Equity Acc (0P0000TKZO.L) — 200W EMA history
+
+Daily data from 2014-01-02 to 2026-10-13; the 200W EMA is defined from 2017-10-27 (469 weeks of history with an EMA). Band ±3%, regime = 200D > 200W for ≥2 weeks.
+
+## Summary
+
+- Weeks closing above the 200W: **99%** · inside the band: 1% · regime on: 100%
+- Now: close 502.40, 200W 390.49 (+28.7%), regime on, 200W slope (13w) +4.0%
+- Touch & hold signals (clustered): 5 raw · reclaim signals: 1 raw
+
+## Episodes at or below the band
+
+Each row is a contiguous run of weeks where the weekly low was at or below the top of the band (i.e. price was interacting with the 200W). Returns are from the first week's close.
+
+| # | first touch | weeks | deepest close vs 200W | closed below 200W? | regime at start | +4w | +12w | +26w | +52w | left band on |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 2020-03-13 | 9 | -9.3% | yes | on | +4.7% | +18.0% | +20.7% | +35.2% | 2020-05-08 |
+| 2 | 2026-07-17 | 1 | +28.2% | no | on | +3.8% | +4.7% | – | – | 2026-07-17 |
+
+## Touch & hold signals
+
+| date | close | 200W | +4w | +12w | +26w | +52w | max DD next 26w |
+|---|---|---|---|---|---|---|---|
+| 2020-04-10 | 204.64 | 201.06 | +3.5% | +12.1% | +16.8% | +34.2% | +0.0% |
+
+## Reclaim signals
+
+| date | close | 200W | +4w | +12w | +26w | +52w | max DD next 26w |
+|---|---|---|---|---|---|---|---|
+| 2020-04-10 | 204.64 | 201.06 | +3.5% | +12.1% | +16.8% | +34.2% | +0.0% |
+
+## Year-end snapshot
+
+| year | close | 200W | % from 200W | regime | weeks in band that year |
+|---|---|---|---|---|---|
+| 2017 | 206.43 | 159.88 | +29.1% | on | 0 |
+| 2018 | 195.74 | 179.60 | +9.0% | on | 0 |
+| 2019 | 240.83 | 197.73 | +21.8% | on | 0 |
+| 2020 | 253.73 | 210.95 | +20.3% | on | 5 |
+| 2021 | 303.10 | 240.56 | +26.0% | on | 0 |
+| 2022 | 284.15 | 259.42 | +9.5% | on | 0 |
+| 2023 | 322.42 | 277.14 | +16.3% | on | 0 |
+| 2024 | 378.85 | 309.16 | +22.5% | on | 0 |
+| 2025 | 437.41 | 346.18 | +26.4% | on | 0 |
+| 2026 | 502.40 | 390.49 | +28.7% | on | 0 |
