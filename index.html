@@ -67,6 +67,7 @@ table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nu
 th, td { padding: 6px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--grid); }
 th { color: var(--muted); font-weight: 500; font-size: 12px; cursor: pointer; user-select: none; position: sticky; top: 0; background: var(--surface); }
 th.l, td.l { text-align: left; }
+th[data-nosort] { cursor: default; }
 th[data-sorted="asc"]::after { content: " ▲"; font-size: 9px; } th[data-sorted="desc"]::after { content: " ▼"; font-size: 9px; }
 tbody tr { cursor: pointer; } tbody tr:hover { background: var(--surface-2); }
 .sym { font-weight: 600; } .nm { color: var(--muted); font-size: 12px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
@@ -319,19 +320,27 @@ function exportTV(sections, filename) {
 const uniTag = () => universe === 'all' ? 'All' : D.universes[universe].label;
 $('#expSig').onclick = () => exportTV([[`200W signals ${D.generated.slice(0, 10)}`, lastSig]], `200W-signals-${D.generated.slice(0, 10)}.txt`);
 $('#expApp').onclick = () => exportTV([[`200W approaching ${D.generated.slice(0, 10)}`, lastApp]], `200W-approaching-${D.generated.slice(0, 10)}.txt`);
-function collapsible(t, key, rows, head, rowFn) {
+const listSort = { sig: ['weeks_since_signal', 1], app: ['pct_to_band', 1] };
+function collapsible(t, key, rows, cols, rowFn) {
+  const [sk, sd] = listSort[key];
+  rows.sort((a, b) => cmp(a[sk], b[sk]) * sd || cmp(a.pct_from_200w, b.pct_from_200w));
   const open = !!expanded[key], shown = open ? rows : rows.slice(0, SHOW);
+  const head = '<thead><tr>' + cols.map(([k, l, c]) => `<th class="${c || ''}" ${k ? `data-k="${k}"` : 'data-nosort'} ${k === sk ? `data-sorted="${sd > 0 ? 'asc' : 'desc'}"` : ''}>${l}</th>`).join('') + '</tr></thead>';
   t.innerHTML = head + '<tbody>' + shown.map(rowFn).join('') + '</tbody>' +
     (rows.length > SHOW ? `<tfoot><tr><td colspan="9" class="l"><button class="btn more" data-key="${key}">${open ? '▲ Show fewer' : `▼ Show all ${rows.length}`}</button></td></tr></tfoot>` : '');
-  t.onclick = e => { const b = e.target.closest('.more'); if (b) { expanded[b.dataset.key] = !expanded[b.dataset.key]; render(); return; } rowClick(e); };
+  t.onclick = e => {
+    const th = e.target.closest('th[data-k]');
+    if (th) { const k = th.dataset.k; listSort[key] = [k, listSort[key][0] === k ? -listSort[key][1] : 1]; render(); return; }
+    const b = e.target.closest('.more'); if (b) { expanded[b.dataset.key] = !expanded[b.dataset.key]; render(); return; }
+    rowClick(e);
+  };
 }
 function renderSignals() {
-  const S = stocks().filter(s => s.weeks_since_signal != null && s.weeks_since_signal <= 4)
-    .sort((a, b) => a.weeks_since_signal - b.weeks_since_signal || a.pct_from_200w - b.pct_from_200w);
+  const S = stocks().filter(s => s.weeks_since_signal != null && s.weeks_since_signal <= 4);
   lastSig = S;
   const t = $('#sigTable');
   if (!S.length) { t.innerHTML = '<tr><td class="empty l">No signals in the last 4 weeks.</td></tr>'; return; }
-  collapsible(t, 'sig', S, `<thead><tr><th class="l">Stock</th><th>When</th><th>% from 200W</th><th>Low tag</th><th>200W slope</th><th>Off 52w hi</th><th>4w</th><th>Chart</th></tr></thead>`,
+  collapsible(t, 'sig', S, [[null, 'Stock', 'l'], ['weeks_since_signal', 'When'], ['pct_from_200w', '% from 200W'], ['low_pct_from_200w', 'Low tag'], ['slope_200w', '200W slope'], ['pct_from_52w_high', 'Off 52w hi'], ['ret_4w', '4w'], [null, 'Chart']],
     s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${s.weeks_since_signal ? s.weeks_since_signal + 'w ago' : 'now'}</td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}</td><td>${fmt(s.low_pct_from_200w)}</td><td>${slopeCell(s)}</td><td>${depthCell(s)}</td><td class="${cls(s.ret_4w)}">${fmt(s.ret_4w)}</td><td>${spark(s, 140, 30)}</td></tr>`);
 }
 function renderApproach() {
@@ -340,7 +349,7 @@ function renderApproach() {
   lastApp = S;
   const t = $('#appTable');
   if (!S.length) { t.innerHTML = '<tr><td class="empty l">Nothing approaching.</td></tr>'; return; }
-  collapsible(t, 'app', S, `<thead><tr><th class="l">Stock</th><th>Above band</th><th>% from 200W</th><th>200W slope</th><th>Off 52w hi</th><th>4w</th><th>12w</th><th>Chart</th></tr></thead>`,
+  collapsible(t, 'app', S, [[null, 'Stock', 'l'], ['pct_to_band', 'Above band'], ['pct_from_200w', '% from 200W'], ['slope_200w', '200W slope'], ['pct_from_52w_high', 'Off 52w hi'], ['ret_4w', '4w'], ['ret_12w', '12w'], [null, 'Chart']],
     s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${fmt(s.pct_to_band, 1, false)}</td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}</td><td>${slopeCell(s)}</td><td>${depthCell(s)}</td><td class="${cls(s.ret_4w)}">${fmt(s.ret_4w)}</td><td class="${cls(s.ret_12w)}">${fmt(s.ret_12w)}</td><td>${spark(s, 140, 30)}</td></tr>`);
 }
 
