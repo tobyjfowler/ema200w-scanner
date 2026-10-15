@@ -145,6 +145,9 @@ svg.spark { display: block; } .spark .c { fill: none; stroke: var(--ink); stroke
         <option value="band">In band now</option>
         <option value="regime">Regime on</option>
         <option value="near">Within 10% of band</option>
+        <option value="steep">Steep 200W (slope ≥ 2.6% / 13w)</option>
+        <option value="deep">Deep pullback (≥ 29% off 52w high)</option>
+        <option value="quality">Steep 200W + deep pullback</option>
         <option value="mine">My watchlist / holdings</option>
       </select>
       <label><input type="checkbox" id="onlyRegime"> regime on only</label>
@@ -163,6 +166,7 @@ svg.spark { display: block; } .spark .c { fill: none; stroke: var(--ink); stroke
     <div class="stats" id="hStats"></div>
     <div class="tablewrap"><table id="histTable"></table></div>
     <div class="pager"><span id="hPageInfo"></span><button id="hPrev">‹</button><button id="hNext">›</button></div>
+    <p class="help"><b>200W slope</b> is the % change of the 200-week EMA over the prior 13 weeks; <b>Off 52w hi</b> is how far below the 52-week high price sits. In the 2018–2025 signal history, steep slopes (≥2.6%, shown green) and deep pullbacks (≥29% off the high, green) had much better forward returns than flat slopes (&lt;0.6%, red) and shallow touches (&lt;14%, red). See <code>research/slope_report.md</code>.</p>
     <p class="help">The ⇩ TV watchlist buttons download a text file: in TradingView click the <b>name of your watchlist</b> at the top of the watchlist panel → <b>Upload list…</b> and pick the file. The same list is also copied to your clipboard, so on a phone you can paste it into "Add symbol" instead.</p>
     <p class="help">Each row is the first signal of a cluster (touch &amp; hold re-fires while price sits in the band; "Re-fires" counts those in the following 8 weeks). Historic signals are computed on today's index membership (survivorship bias: names that fell out of the index aren't included). "Live" signals are ones the dashboard logged as they happened — that's the clean out-of-sample record.</p>
   </section>
@@ -289,6 +293,8 @@ function spark(s, w = 120, h = 32) {
 
 /* ---------- tables ---------- */
 const status = s => notes[s.symbol]?.status;
+const slopeCell = s => s.slope_200w == null ? '–' : `<span class="${s.slope_200w >= 2.6 ? 'pos' : s.slope_200w < 0.6 ? 'neg' : ''}">${fmt(s.slope_200w)}</span>`;
+const depthCell = s => s.pct_from_52w_high == null ? '–' : `<span class="${s.pct_from_52w_high <= -29 ? 'pos' : s.pct_from_52w_high > -14 ? 'neg' : ''}">${fmt(s.pct_from_52w_high)}</span>`;
 const statusChip = s => status(s) ? `<span class="chip st">${esc(status(s))}</span>` : '';
 const symCell = s => `<td class="l"><span class="sym">${esc(s.symbol)}</span>${statusChip(s)}<div class="nm">${esc(s.name)}</div></td>`;
 const uniShort = u => ({sp500: 'S&P', nasdaq100: 'NDX', ftse100: 'FTSE'})[u] || u;
@@ -319,8 +325,8 @@ function renderSignals() {
   lastSig = S;
   const t = $('#sigTable');
   if (!S.length) { t.innerHTML = '<tr><td class="empty l">No signals in the last 4 weeks.</td></tr>'; return; }
-  collapsible(t, 'sig', S, `<thead><tr><th class="l">Stock</th><th>When</th><th>% from 200W</th><th>Low tag</th><th>Chart</th></tr></thead>`,
-    s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${s.weeks_since_signal ? s.weeks_since_signal + 'w ago' : 'this week'} ${uniChips(s)}</td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}</td><td>${fmt(s.low_pct_from_200w)}</td><td>${spark(s, 100, 28)}</td></tr>`);
+  collapsible(t, 'sig', S, `<thead><tr><th class="l">Stock</th><th>When</th><th>% from 200W</th><th>200W slope</th><th>Off 52w hi</th><th>Chart</th></tr></thead>`,
+    s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${s.weeks_since_signal ? s.weeks_since_signal + 'w ago' : 'this week'} ${uniChips(s)}</td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}</td><td>${slopeCell(s)}</td><td>${depthCell(s)}</td><td>${spark(s, 100, 28)}</td></tr>`);
 }
 function renderApproach() {
   const S = stocks().filter(s => s.regime_on && !s.in_band && s.pct_to_band > 0 && !(s.weeks_since_signal != null && s.weeks_since_signal <= 4))
@@ -328,13 +334,13 @@ function renderApproach() {
   lastApp = S;
   const t = $('#appTable');
   if (!S.length) { t.innerHTML = '<tr><td class="empty l">Nothing approaching.</td></tr>'; return; }
-  collapsible(t, 'app', S, `<thead><tr><th class="l">Stock</th><th>Above band</th><th>4w</th><th>12w</th><th>Chart</th></tr></thead>`,
-    s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${fmt(s.pct_to_band, 1, false)} ${uniChips(s)}</td><td class="${cls(s.ret_4w)}">${fmt(s.ret_4w)}</td><td class="${cls(s.ret_12w)}">${fmt(s.ret_12w)}</td><td>${spark(s, 100, 28)}</td></tr>`);
+  collapsible(t, 'app', S, `<thead><tr><th class="l">Stock</th><th>Above band</th><th>200W slope</th><th>Off 52w hi</th><th>Chart</th></tr></thead>`,
+    s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${fmt(s.pct_to_band, 1, false)} ${uniChips(s)}</td><td>${slopeCell(s)}</td><td>${depthCell(s)}</td><td>${spark(s, 100, 28)}</td></tr>`);
 }
 
 const COLS = [
   ['symbol', 'Stock', 'l'], ['sector', 'Sector', 'l'], ['close', 'Close'], ['pct_from_200w', '% from 200W'], ['pct_to_band', 'Above band'],
-  ['regime_on', 'Regime'], ['weeks_since_signal', 'Last signal'], ['ret_4w', '4w'], ['ret_12w', '12w'], ['pct_from_52w_high', 'vs 52w hi'], ['spark', 'Chart'],
+  ['regime_on', 'Regime'], ['weeks_since_signal', 'Last signal'], ['ret_4w', '4w'], ['ret_12w', '12w'], ['slope_200w', '200W slope'], ['pct_from_52w_high', 'Off 52w hi'], ['spark', 'Chart'],
 ];
 function renderAll() {
   const q = $('#q').value.trim().toLowerCase(), sec = $('#sector').value, f = $('#filt').value, onlyR = $('#onlyRegime').checked;
@@ -346,6 +352,9 @@ function renderAll() {
   if (f === 'regime') S = S.filter(s => s.regime_on);
   if (f === 'near') S = S.filter(s => s.pct_to_band != null && s.pct_to_band > 0 && s.pct_to_band <= 10);
   if (f === 'mine') S = S.filter(s => status(s));
+  if (f === 'steep') S = S.filter(s => s.slope_200w >= 2.6);
+  if (f === 'deep') S = S.filter(s => s.pct_from_52w_high <= -29);
+  if (f === 'quality') S = S.filter(s => s.slope_200w >= 2.6 && s.pct_from_52w_high <= -29);
   S.sort((a, b) => cmp(a[sortKey], b[sortKey]) * sortDir);
   $('#count').textContent = `${S.length} shown`;
   const pages = Math.max(1, Math.ceil(S.length / PAGE)); page = Math.min(page, pages - 1);
@@ -353,7 +362,7 @@ function renderAll() {
   $('#pageInfo').textContent = `page ${page + 1} of ${pages}`;
   const t = $('#allTable');
   t.innerHTML = `<thead><tr>${COLS.map(([k, l, c]) => `<th class="${c || ''}" data-k="${k}" ${k === sortKey ? `data-sorted="${sortDir > 0 ? 'asc' : 'desc'}"` : ''}>${l}</th>`).join('')}</tr></thead><tbody>` +
-    rows.map(s => `<tr data-sym="${s.symbol}">${symCell(s)}<td class="l nm">${esc(s.sector)}</td><td>${s.close}</td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}${s.in_band ? '<span class="chip band">band</span>' : ''}</td><td>${s.pct_to_band > 0 ? fmt(s.pct_to_band, 1, false) : '–'}</td><td>${s.regime_on ? `<span class="chip sig">on ${s.regime_weeks ?? ''}w</span>` : '<span class="chip off">off</span>'}</td><td>${ws(s) == null ? '–' : ws(s) + 'w'}</td><td class="${cls(s.ret_4w)}">${fmt(s.ret_4w)}</td><td class="${cls(s.ret_12w)}">${fmt(s.ret_12w)}</td><td>${fmt(s.pct_from_52w_high)}</td><td>${spark(s)}</td></tr>`).join('') + '</tbody>';
+    rows.map(s => `<tr data-sym="${s.symbol}">${symCell(s)}<td class="l nm">${esc(s.sector)}</td><td>${s.close}</td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}${s.in_band ? '<span class="chip band">band</span>' : ''}</td><td>${s.pct_to_band > 0 ? fmt(s.pct_to_band, 1, false) : '–'}</td><td>${s.regime_on ? `<span class="chip sig">on ${s.regime_weeks ?? ''}w</span>` : '<span class="chip off">off</span>'}</td><td>${ws(s) == null ? '–' : ws(s) + 'w'}</td><td class="${cls(s.ret_4w)}">${fmt(s.ret_4w)}</td><td class="${cls(s.ret_12w)}">${fmt(s.ret_12w)}</td><td>${slopeCell(s)}</td><td>${depthCell(s)}</td><td>${spark(s)}</td></tr>`).join('') + '</tbody>';
   t.querySelector('thead').onclick = e => { const th = e.target.closest('th'); if (!th || th.dataset.k === 'spark') return; if (sortKey === th.dataset.k) sortDir *= -1; else { sortKey = th.dataset.k; sortDir = 1; } renderAll(); };
   t.querySelector('tbody').onclick = rowClick;
 }
@@ -400,7 +409,7 @@ function openDrawer(sym) {
       ${kv('Close', s.close)}${kv('200W EMA', s.ema200w)}${kv('200D EMA', s.ema200d)}
       ${kv('% from 200W', fmt(s.pct_from_200w))}${kv('Low this week vs 200W', fmt(s.low_pct_from_200w))}${kv('Above band top', s.pct_to_band > 0 ? fmt(s.pct_to_band, 1, false) : 'inside / below')}
       ${kv('Regime', s.regime_on ? `on for ${s.regime_weeks}w` : 'off')}${kv('Last touch & hold signal', s.weeks_since_signal == null ? 'none' : s.weeks_since_signal + 'w ago')}
-      ${kv('Last reclaim signal', s.weeks_since_other == null ? 'none' : s.weeks_since_other + 'w ago')}${kv('vs 52w high / low', fmt(s.pct_from_52w_high) + ' / ' + fmt(s.pct_from_52w_low))}
+      ${kv('Last reclaim signal', s.weeks_since_other == null ? 'none' : s.weeks_since_other + 'w ago')}${kv('vs 52w high / low', fmt(s.pct_from_52w_high) + ' / ' + fmt(s.pct_from_52w_low))}${kv('200W slope (13w)', fmt(s.slope_200w))}
       ${kv('Return 4w / 12w', fmt(s.ret_4w) + ' / ' + fmt(s.ret_12w))}${kv('Week ending', s.week)}
     </div>
     <label>Status <select id="nStatus"><option value="">—</option>${['watching', 'bought', 'passed', 'sold'].map(v => `<option ${n.status === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>

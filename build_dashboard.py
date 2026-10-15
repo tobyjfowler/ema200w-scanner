@@ -127,6 +127,7 @@ def scan_universe(name: str, args, exchanges: dict[str, str]) -> tuple[list[dict
             "weeks_since_signal": None if np.isnan(last["weeks_since_signal"]) else int(last["weeks_since_signal"]),
             "weeks_since_other": None if np.isnan(wk_other["weeks_since_signal"].iloc[-1]) else int(wk_other["weeks_since_signal"].iloc[-1]),
             "pct_from_52w_high": r2((last["Close"] / hi52 - 1) * 100),
+            "slope_200w": r2((last["emaW"] / wk["emaW"].iloc[-14] - 1) * 100) if len(wk) > 14 and pd.notna(wk["emaW"].iloc[-14]) else None,
             "pct_from_52w_low": r2((last["Close"] / lo52 - 1) * 100),
             "ret_4w": r2((last["Close"] / wk["Close"].iloc[-5] - 1) * 100) if len(wk) > 5 else None,
             "ret_12w": r2((last["Close"] / wk["Close"].iloc[-13] - 1) * 100) if len(wk) > 13 else None,
