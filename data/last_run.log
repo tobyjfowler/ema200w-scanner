@@ -9,8 +9,7 @@
 [nasdaq100] 101 symbols
   fetched 100/101
   fetched 101/101
-[nasdaq100] data for 100
-looking up exchange for 95 new symbols
+[nasdaq100] data for 101
 [sp400] 400 symbols
   fetched 100/400
   fetched 200/400
@@ -34,4 +33,4 @@ $BTA.L: No data found, symbol may be delisted
 [markets] 25 symbols
   fetched 25/25
 [markets] data for 25
-wrote 1339 stocks, 7233 historic signals, 9 new live signals
+wrote 1340 stocks, 7226 historic signals, 3 new live signals
