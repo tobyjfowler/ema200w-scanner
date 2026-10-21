@@ -3,3 +3,4 @@
 # US:  AAPL          UK:  SHEL.L         Other Yahoo suffixes work too (.DE, .PA, .TO ...)
 #
 # JEPQ.L, JPMorgan Nasdaq Equity Premium Income UCITS
+0P0000TKZO.L, Vanguard LifeStrategy 100% Equity Acc
