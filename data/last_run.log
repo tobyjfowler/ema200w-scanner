@@ -29,8 +29,10 @@ $BTA.L: No data found, symbol may be delisted
   fetched 200/250
   fetched 250/250
 [ftse250] data for 250
-[watchlist] WARNING: nothing scanned, skipping
+[watchlist] 1 symbols
+  fetched 1/1
+[watchlist] data for 1
 [markets] 25 symbols
   fetched 25/25
 [markets] data for 25
-wrote 1340 stocks, 7254 historic signals, 5 new live signals
+wrote 1341 stocks, 7249 historic signals, 48 new live signals
