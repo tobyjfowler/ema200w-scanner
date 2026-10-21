@@ -66,6 +66,12 @@ details { margin-top: 10px; } summary { cursor: pointer; color: var(--ink-2); fo
 .rg.on { border-left-color: var(--good); } .rg.off { border-left-color: var(--bad); } .rg.mixed { border-left-color: #c98500; }
 .rg .t { font-weight: 600; } .rg .d { color: var(--ink-2); font-size: 13px; margin-top: 2px; } .rg .n { color: var(--muted); font-size: 12px; margin-top: 4px; }
 .bar { height: 6px; border-radius: 3px; background: var(--grid); position: relative; margin-top: 6px; } .bar i { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: var(--s1); }
+.tagbtns { display: inline-flex; gap: 4px; align-items: center; } .tagbtns button { width: 16px; height: 16px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; opacity: .55; } .tagbtns button:hover, .tagbtns button[aria-pressed="true"] { opacity: 1; border-color: var(--ink); } .tagbtns .x { width: auto; height: auto; border-radius: 4px; background: none; color: var(--muted); font-size: 12px; padding: 0 4px; opacity: .8; border: 1px solid var(--border); } .tagbtns .x[aria-pressed="true"] { color: var(--bad); border-color: var(--bad); }
+.tag { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-left: 6px; vertical-align: -1px; } .tagname { font-size: 11px; color: var(--ink-2); margin-left: 4px; }
+.tfilters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; align-items: center; } .tfilters .btn i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; } .tfilters .btn[aria-pressed="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); }
+.sync { font-size: 12px; color: var(--muted); } .sync.err { color: var(--bad); } .sync.ok { color: var(--good); }
+.settings { background: var(--surface-2); border-radius: 8px; padding: 12px; margin-top: 8px; display: none; } .settings.open { display: block; } .settings input[type=text], .settings input[type=password] { font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--ink); width: 100%; max-width: 420px; } .settings .lab { display: grid; grid-template-columns: 26px 1fr; gap: 6px 8px; align-items: center; max-width: 420px; margin-top: 8px; } .settings .lab i { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+tr.passed td { opacity: .45; }
 .grp td { background: var(--surface-2); color: var(--ink-2); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; cursor: default; }
 .tab:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
 section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
@@ -126,8 +132,9 @@ svg.spark { display: block; } .spark .c { fill: none; stroke: var(--ink); stroke
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 10px; }
 .stats .tile .v { font-size: 18px; }
 @media (max-width: 720px) {
-  #sigTable th:nth-child(4), #sigTable td:nth-child(4), #sigTable th:nth-child(7), #sigTable td:nth-child(7), #sigTable th:nth-child(8), #sigTable td:nth-child(8),
-  #appTable th:nth-child(3), #appTable td:nth-child(3), #appTable th:nth-child(6), #appTable td:nth-child(6), #appTable th:nth-child(7), #appTable td:nth-child(7), #appTable th:nth-child(8), #appTable td:nth-child(8) { display: none; }
+  #sigTable th:nth-child(4), #sigTable td:nth-child(4), #sigTable th:nth-child(7), #sigTable td:nth-child(7), #sigTable th:nth-child(8), #sigTable td:nth-child(8), #sigTable th:nth-child(9), #sigTable td:nth-child(9),
+  #appTable th:nth-child(8), #appTable td:nth-child(8), #appTable th:nth-child(3), #appTable td:nth-child(3), #appTable th:nth-child(6), #appTable td:nth-child(6), #appTable th:nth-child(7), #appTable td:nth-child(7), #appTable th:nth-child(9), #appTable td:nth-child(9) { display: none; }
+  .tagname { display: none; } .drawer .tagbtns button { width: 22px; height: 22px; } .drawer .tagbtns { gap: 6px; }
   #mktTable th:nth-child(2), #mktTable td:nth-child(2), #mktTable th:nth-child(4), #mktTable td:nth-child(4), #mktTable th:nth-child(6), #mktTable td:nth-child(6), #mktTable th:nth-child(9), #mktTable td:nth-child(9), #mktTable th:nth-child(10), #mktTable td:nth-child(10), #mktTable th:nth-child(11), #mktTable td:nth-child(11) { display: none; }
   th, td { padding: 6px 4px; font-size: 13px; white-space: normal; } th { font-size: 11px; line-height: 1.2; }
   td.l { max-width: 120px; } .nm { max-width: 112px; } td.l .chip { display: none; } .h2row small { display: none; }
@@ -142,6 +149,7 @@ svg.spark { display: block; } .spark .c { fill: none; stroke: var(--ink); stroke
     </div>
     <div class="tabs" role="tablist" id="views"><button class="tab view" data-v="stocks" aria-selected="true">Stocks</button><button class="tab view" data-v="markets" aria-selected="false">Markets</button><button class="tab view" data-v="funds" aria-selected="false">Vanguard</button></div>
     <div class="tabs" role="tablist" id="tabs"></div>
+    <span class="sync" id="sync"></span><button class="btn" id="gear" title="Tags &amp; sync settings">⚙︎</button>
     <label class="theme"><select id="theme"><option value="auto">Auto theme</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
   </header>
 
@@ -155,7 +163,16 @@ svg.spark { display: block; } .spark .c { fill: none; stroke: var(--ink); stroke
   </section>
 
   <section id="sigSection">
+    <div class="settings" id="settings">
+      <b>Sync tags &amp; notes across devices</b>
+      <p class="help" style="margin:4px 0 8px">Paste a GitHub token with <i>Contents: read &amp; write</i> on the <code>ema200w-scanner</code> repo. It's stored only in this browser. Tags save to <code>data/triage.json</code> in the repo, so every device sees them. Without a token, tags stay on this device.</p>
+      <input type="password" id="ghtoken" placeholder="github_pat_…" autocomplete="off"> <button class="btn" id="saveToken">Save</button> <button class="btn" id="clearToken">Remove</button>
+      <p class="help" style="margin:12px 0 4px"><b>Tag labels</b> — name each colour whatever you like; blank is fine.</p>
+      <div class="lab" id="labels"></div>
+      <p class="help" style="margin:10px 0 0">Passed (✕) stocks are dimmed and drop to the bottom; they come back as untagged if they signal again more than 8 weeks later.</p>
+    </div>
     <div class="h2row"><h2>Signals <small>last 4 weeks · click a row for detail</small></h2><button class="btn" id="expSig" title="Download a TradingView watchlist file">⇩ TV watchlist</button></div>
+    <div class="tfilters" id="tfilters"></div>
     <div class="tablewrap"><table id="sigTable"></table></div>
   </section>
 
@@ -246,9 +263,70 @@ const $ = s => document.querySelector(s);
 const fmt = (v, d = 1, sign = true) => v == null ? '–' : (sign && v > 0 ? '+' : '') + v.toFixed(d) + '%';
 const cls = v => v == null ? '' : v >= 0 ? 'pos' : 'neg';
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const LS = 'ema200w-notes';
-let notes = {}; try { notes = JSON.parse(localStorage.getItem(LS) || '{}'); } catch {}
-const saveNotes = () => { try { localStorage.setItem(LS, JSON.stringify(notes)); } catch {} };
+/* ---------- triage store: tags + notes, synced to data/triage.json in the repo when a token is set ---------- */
+const REPO = 'tobyjfowler/ema200w-scanner', TRIAGE_PATH = 'data/triage.json';
+const COLORS = [['red', '#e34948'], ['orange', '#eb6834'], ['yellow', '#eda100'], ['green', '#1baf7a'], ['blue', '#2a78d6'], ['purple', '#6250d6']];
+const COLOR_HEX = Object.fromEntries(COLORS);
+let T = {labels: {}, tags: {}, notes: {}}, tSha = null, tDirty = false, tTimer = null;
+let notes = T.notes;
+const LS = 'ema200w-notes', LST = 'ema200w-triage';
+const ghToken = () => { try { return localStorage.getItem('ema200w-ghtoken') || ''; } catch { return ''; } };
+const setSync = (msg, cls = '') => { const e = $('#sync'); e.textContent = msg; e.className = 'sync ' + cls; };
+function tagOf(sym) { const t = T.tags[sym]; return t ? t.c : null; }
+function isPassed(s) { return tagOf(s.symbol) === 'x'; }
+async function loadTriage() {
+  // local copy first (works offline / without token), then the repo copy
+  try { const l = JSON.parse(localStorage.getItem(LST) || 'null'); if (l) T = Object.assign({labels: {}, tags: {}, notes: {}}, l); } catch {}
+  try { const old = JSON.parse(localStorage.getItem(LS) || 'null'); if (old && !Object.keys(T.notes).length) { T.notes = old; } } catch {}
+  notes = T.notes;
+  for (const [sym, v] of Object.entries(T.tags)) if (v.c === 'x' && Date.now() - (v.t || 0) > 8 * 7 * 864e5) delete T.tags[sym];
+  const tok = ghToken();
+  try {
+    let remote = null;
+    if (tok) {
+      const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${TRIAGE_PATH}?ref=main`, {headers: {Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json'}, cache: 'no-store'});
+      if (r.status === 404) { tSha = null; remote = {labels: {}, tags: {}, notes: {}}; }
+      else if (!r.ok) throw new Error('GitHub ' + r.status);
+      else { const j = await r.json(); tSha = j.sha; remote = JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g, ''))))); }
+    } else {
+      const r = await fetch(`https://raw.githubusercontent.com/${REPO}/main/${TRIAGE_PATH}?t=${Date.now()}`, {cache: 'no-store'});
+      if (r.ok) remote = await r.json();
+    }
+    if (remote) {
+      // merge: newest timestamp wins per symbol
+      const merged = {labels: Object.assign({}, remote.labels || {}, T.labels || {}), tags: Object.assign({}, remote.tags || {}), notes: Object.assign({}, remote.notes || {})};
+      for (const k of ['tags', 'notes']) for (const [sym, v] of Object.entries(T[k] || {})) if (!merged[k][sym] || (v.t || 0) > (merged[k][sym].t || 0)) merged[k][sym] = v;
+      T = merged; notes = T.notes;
+      try { localStorage.setItem(LST, JSON.stringify(T)); } catch {}
+      setSync(tok ? 'synced' : 'read-only (no token)', tok ? 'ok' : '');
+    } else setSync(tok ? 'synced' : 'local only');
+  } catch (e) { setSync('sync failed: ' + e.message, 'err'); }
+}
+function saveTriage() {
+  try { localStorage.setItem(LST, JSON.stringify(T)); } catch {}
+  if (!ghToken()) { setSync('saved locally — add a token to sync'); return; }
+  tDirty = true; setSync('saving…'); clearTimeout(tTimer); tTimer = setTimeout(pushTriage, 1200);
+}
+async function pushTriage(attempt = 0) {
+  const tok = ghToken(); if (!tok) return;
+  const body = {message: 'triage: update tags/notes', content: btoa(unescape(encodeURIComponent(JSON.stringify(T, null, 1)))), branch: 'main'};
+  if (tSha) body.sha = tSha;
+  try {
+    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${TRIAGE_PATH}`, {method: 'PUT', headers: {Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+    if (r.status === 409 || r.status === 422) {      // sha out of date: reload, merge, retry once
+      if (attempt < 2) { await loadTriage(); return pushTriage(attempt + 1); }
+      throw new Error('conflict');
+    }
+    if (!r.ok) throw new Error('GitHub ' + r.status);
+    const j = await r.json(); tSha = j.content.sha; tDirty = false; setSync('synced', 'ok');
+  } catch (e) { setSync('sync failed: ' + e.message + ' (saved locally)', 'err'); }
+}
+const saveNotes = saveTriage;
+function setTag(sym, c) {
+  if (c === null || tagOf(sym) === c) delete T.tags[sym]; else T.tags[sym] = {c, t: Date.now()};
+  saveTriage(); renderSignals(); renderApproach(); renderAll();
+}
+let tagFilter = 'all';
 try { const t = localStorage.getItem('ema200w-theme'); if (t) { $('#theme').value = t; applyTheme(t); } } catch {}
 function applyTheme(t) { if (t === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t; }
 $('#theme').onchange = e => { applyTheme(e.target.value); try { localStorage.setItem('ema200w-theme', e.target.value); } catch {} };
@@ -258,7 +336,7 @@ try { const v = localStorage.getItem('ema200w-view'); if (v === 'markets' || v =
 const PAGE = 50;
 
 Promise.all([fetch('data/latest.json').then(r => r.json()), fetch('data/history.json').then(r => r.json()).catch(() => ({runs: [], live_signals: {}})), fetch('data/funds.json').then(r => r.json()).catch(() => ({funds: []}))])
-  .then(([d, h, f]) => { D = d; H = h; F = f; init(); })
+  .then(async ([d, h, f]) => { D = d; H = h; F = f; await loadTriage(); init(); })
   .catch(e => { $('#meta').textContent = 'Could not load data/latest.json — has the scan run yet? ' + e; });
 
 function init() {
@@ -284,6 +362,11 @@ function init() {
   $('#hNext').onclick = () => { hPage++; renderHist(); };
   $('#scrim').onclick = closeDrawer;
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+  $('#gear').onclick = () => { $('#settings').classList.toggle('open'); if (view !== 'stocks') { view = 'stocks'; render(); } renderLabels(); };
+  $('#ghtoken').value = ghToken();
+  $('#saveToken').onclick = async () => { try { localStorage.setItem('ema200w-ghtoken', $('#ghtoken').value.trim()); } catch {} await loadTriage(); render(); };
+  $('#clearToken').onclick = async () => { try { localStorage.removeItem('ema200w-ghtoken'); } catch {} $('#ghtoken').value = ''; await loadTriage(); render(); };
+  $('#tfilters').onclick = e => { const b = e.target.closest('.btn'); if (!b) return; tagFilter = b.dataset.f; renderSignals(); renderApproach(); };
   let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => view === 'funds' ? renderFund() : renderBreadth(), 150); });
   render();
 }
@@ -388,7 +471,9 @@ const status = s => notes[s.symbol]?.status;
 const slopeCell = s => s.slope_200w == null ? '–' : `<span class="${s.slope_200w >= 2.6 ? 'pos' : s.slope_200w < 0.6 ? 'neg' : ''}">${fmt(s.slope_200w)}</span>`;
 const depthCell = s => s.pct_from_52w_high == null ? '–' : `<span class="${s.pct_from_52w_high <= -29 ? 'pos' : s.pct_from_52w_high > -14 ? 'neg' : ''}">${fmt(s.pct_from_52w_high)}</span>`;
 const statusChip = s => status(s) ? `<span class="chip st">${esc(status(s))}</span>` : '';
-const symCell = s => `<td class="l"><span class="sym">${esc(s.symbol)}</span>${uniChips(s)}${statusChip(s)}<div class="nm">${esc(s.name)}</div></td>`;
+const tagChip = s => { const c = tagOf(s.symbol); if (!c) return ''; if (c === 'x') return '<span class="chip off">passed</span>'; return `<span class="tag" style="background:${COLOR_HEX[c]}"></span>${T.labels[c] ? `<span class="tagname">${esc(T.labels[c])}</span>` : ''}`; };
+const tagCell = s => `<td><span class="tagbtns" data-sym="${s.symbol}">${COLORS.map(([c, hex]) => `<button style="background:${hex}" data-c="${c}" title="${esc(T.labels[c] || c)}" aria-pressed="${tagOf(s.symbol) === c}"></button>`).join('')}<button class="x" data-c="x" title="Pass" aria-pressed="${tagOf(s.symbol) === 'x'}">✕</button></span></td>`;
+const symCell = s => `<td class="l"><span class="sym">${esc(s.symbol)}</span>${uniChips(s)}${tagChip(s)}${statusChip(s)}<div class="nm">${esc(s.name)}</div></td>`;
 const uniShort = u => ({sp500: 'S&P', nasdaq100: 'NDX', sp400: 'S&P400', ftse100: 'FTSE', ftse250: 'F250', watchlist: 'WL', markets: 'MKT'})[u] || u;
 
 const SHOW = 10, expanded = {};
@@ -409,24 +494,29 @@ const listSort = { sig: ['weeks_since_signal', 1], app: ['pct_to_band', 1] };
 function collapsible(t, key, rows, cols, rowFn) {
   const [sk, sd] = listSort[key];
   rows.sort((a, b) => cmp(a[sk], b[sk]) * sd || cmp(a.pct_from_200w, b.pct_from_200w));
+  if (!listSort[key][2]) tagSort(rows);          // tags group first unless the user chose a column sort
+  rows = applyTagFilter(rows);
   const open = !!expanded[key], shown = open ? rows : rows.slice(0, SHOW);
   const head = '<thead><tr>' + cols.map(([k, l, c]) => `<th class="${c || ''}" ${k ? `data-k="${k}"` : 'data-nosort'} ${k === sk ? `data-sorted="${sd > 0 ? 'asc' : 'desc'}"` : ''}>${l}</th>`).join('') + '</tr></thead>';
   t.innerHTML = head + '<tbody>' + shown.map(rowFn).join('') + '</tbody>' +
-    (rows.length > SHOW ? `<tfoot><tr><td colspan="9" class="l"><button class="btn more" data-key="${key}">${open ? '▲ Show fewer' : `▼ Show all ${rows.length}`}</button></td></tr></tfoot>` : '');
+    (rows.length > SHOW ? `<tfoot><tr><td colspan="10" class="l"><button class="btn more" data-key="${key}">${open ? '▲ Show fewer' : `▼ Show all ${rows.length}`}</button></td></tr></tfoot>` : '');
   t.onclick = e => {
+    const tb = e.target.closest('.tagbtns button');
+    if (tb) { setTag(tb.closest('.tagbtns').dataset.sym, tb.dataset.c); return; }
     const th = e.target.closest('th[data-k]');
-    if (th) { const k = th.dataset.k; listSort[key] = [k, listSort[key][0] === k ? -listSort[key][1] : 1]; render(); return; }
+    if (th) { const k = th.dataset.k; listSort[key] = [k, listSort[key][0] === k ? -listSort[key][1] : 1, true]; render(); return; }
     const b = e.target.closest('.more'); if (b) { expanded[b.dataset.key] = !expanded[b.dataset.key]; render(); return; }
     rowClick(e);
   };
 }
 function renderSignals() {
   const S = stocks().filter(s => s.weeks_since_signal != null && s.weeks_since_signal <= 4);
-  lastSig = S;
+  renderTagFilters(S);
+  lastSig = applyTagFilter([...S]);
   const t = $('#sigTable');
   if (!S.length) { t.innerHTML = '<tr><td class="empty l">No signals in the last 4 weeks.</td></tr>'; return; }
-  collapsible(t, 'sig', S, [[null, 'Stock', 'l'], ['weeks_since_signal', 'When'], ['pct_from_200w', '% from 200W'], ['low_pct_from_200w', 'Low tag'], ['slope_200w', '200W slope'], ['pct_from_52w_high', 'Off 52w hi'], ['ret_4w', '4w'], [null, 'Chart']],
-    s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${s.weeks_since_signal ? s.weeks_since_signal + 'w ago' : 'now'}</td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}</td><td>${fmt(s.low_pct_from_200w)}</td><td>${slopeCell(s)}</td><td>${depthCell(s)}</td><td class="${cls(s.ret_4w)}">${fmt(s.ret_4w)}</td><td>${spark(s, 140, 30)}</td></tr>`);
+  collapsible(t, 'sig', S, [[null, 'Stock', 'l'], ['weeks_since_signal', 'When'], ['pct_from_200w', '% from 200W'], ['low_pct_from_200w', 'Low tag'], ['slope_200w', '200W slope'], ['pct_from_52w_high', 'Off 52w hi'], ['ret_4w', '4w'], [null, 'Tag'], [null, 'Chart']],
+    s => `<tr data-sym="${s.symbol}" class="${isPassed(s) ? 'passed' : ''}">${symCell(s)}<td>${s.weeks_since_signal ? s.weeks_since_signal + 'w ago' : 'now'}</td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}</td><td>${fmt(s.low_pct_from_200w)}</td><td>${slopeCell(s)}</td><td>${depthCell(s)}</td><td class="${cls(s.ret_4w)}">${fmt(s.ret_4w)}</td>${tagCell(s)}<td>${spark(s, 140, 30)}</td></tr>`);
 }
 let mktSort = ['pct_from_200w', 1];
 const MCOLS = [[null, 'Instrument', 'l'], ['close', 'Last'], ['pct_from_200w', '% from 200W'], ['pct_to_band', 'Above band'], ['regime_on', 'Regime'], ['weeks_since_signal', 'Last signal'], ['slope_200w', '200W slope'], ['pct_from_52w_high', 'Off 52w hi'], ['ret_4w', '4w'], ['ret_12w', '12w'], [null, 'Chart']];
@@ -479,11 +569,11 @@ function renderMarkets() {
 function renderApproach() {
   const S = stocks().filter(s => s.regime_on && !s.in_band && s.pct_to_band > 0 && !(s.weeks_since_signal != null && s.weeks_since_signal <= 4))
     .sort((a, b) => a.pct_to_band - b.pct_to_band).slice(0, 100);
-  lastApp = S;
+  lastApp = applyTagFilter([...S]);
   const t = $('#appTable');
   if (!S.length) { t.innerHTML = '<tr><td class="empty l">Nothing approaching.</td></tr>'; return; }
-  collapsible(t, 'app', S, [[null, 'Stock', 'l'], ['pct_to_band', 'Above band'], ['pct_from_200w', '% from 200W'], ['slope_200w', '200W slope'], ['pct_from_52w_high', 'Off 52w hi'], ['ret_4w', '4w'], ['ret_12w', '12w'], [null, 'Chart']],
-    s => `<tr data-sym="${s.symbol}">${symCell(s)}<td>${fmt(s.pct_to_band, 1, false)}</td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}</td><td>${slopeCell(s)}</td><td>${depthCell(s)}</td><td class="${cls(s.ret_4w)}">${fmt(s.ret_4w)}</td><td class="${cls(s.ret_12w)}">${fmt(s.ret_12w)}</td><td>${spark(s, 140, 30)}</td></tr>`);
+  collapsible(t, 'app', S, [[null, 'Stock', 'l'], ['pct_to_band', 'Above band'], ['pct_from_200w', '% from 200W'], ['slope_200w', '200W slope'], ['pct_from_52w_high', 'Off 52w hi'], ['ret_4w', '4w'], ['ret_12w', '12w'], [null, 'Tag'], [null, 'Chart']],
+    s => `<tr data-sym="${s.symbol}" class="${isPassed(s) ? 'passed' : ''}">${symCell(s)}<td>${fmt(s.pct_to_band, 1, false)}</td><td class="${cls(s.pct_from_200w)}">${fmt(s.pct_from_200w)}</td><td>${slopeCell(s)}</td><td>${depthCell(s)}</td><td class="${cls(s.ret_4w)}">${fmt(s.ret_4w)}</td><td class="${cls(s.ret_12w)}">${fmt(s.ret_12w)}</td>${tagCell(s)}<td>${spark(s, 140, 30)}</td></tr>`);
 }
 
 const COLS = [
@@ -542,6 +632,20 @@ function renderHist() {
   t.querySelector('thead').onclick = e => { const th = e.target.closest('th'); if (!th) return; if (hSortKey === th.dataset.k) hSortDir *= -1; else { hSortKey = th.dataset.k; hSortDir = -1; } renderHist(); };
   t.querySelector('tbody').onclick = rowClick;
 }
+
+function renderLabels() {
+  $('#labels').innerHTML = COLORS.map(([c, hex]) => `<i style="background:${hex}"></i><input type="text" data-c="${c}" value="${esc(T.labels[c] || '')}" placeholder="${c}">`).join('');
+  $('#labels').oninput = e => { const i = e.target.closest('input'); if (!i) return; T.labels[i.dataset.c] = i.value.trim(); clearTimeout(tTimer); tTimer = setTimeout(() => { saveTriage(); renderSignals(); renderApproach(); renderAll(); }, 800); };
+}
+function renderTagFilters(rows) {
+  const n = c => rows.filter(s => tagOf(s.symbol) === c).length;
+  const un = rows.filter(s => !tagOf(s.symbol)).length;
+  $('#tfilters').innerHTML = [['all', `All ${rows.length}`, ''], ['none', `Untagged ${un}`, '']].concat(COLORS.map(([c, hex]) => [c, `<i style="background:${hex}"></i>${esc(T.labels[c] || c)} ${n(c)}`, hex])).concat([['x', `✕ Passed ${n('x')}`, '']])
+    .map(([f, l]) => `<button class="btn" data-f="${f}" aria-pressed="${tagFilter === f}">${l}</button>`).join('');
+}
+const tagOrder = c => c === 'x' ? 99 : c ? COLORS.findIndex(x => x[0] === c) : 50;
+function tagSort(rows) { return rows.sort((a, b) => tagOrder(tagOf(a.symbol)) - tagOrder(tagOf(b.symbol))); }
+function applyTagFilter(rows) { return tagFilter === 'all' ? rows : tagFilter === 'none' ? rows.filter(s => !tagOf(s.symbol)) : rows.filter(s => tagOf(s.symbol) === tagFilter); }
 
 /* ---------- funds ---------- */
 const LVC = {ema200d: 'var(--s1)', ema100w: 'var(--s3)', ema200w: 'var(--s2)'};
@@ -638,13 +742,15 @@ function openDrawer(sym) {
       ${kv('Last reclaim signal', s.weeks_since_other == null ? 'none' : s.weeks_since_other + 'w ago')}${kv('vs 52w high / low', fmt(s.pct_from_52w_high) + ' / ' + fmt(s.pct_from_52w_low))}${kv('200W slope (13w)', fmt(s.slope_200w))}
       ${kv('Return 4w / 12w', fmt(s.ret_4w) + ' / ' + fmt(s.ret_12w))}${kv('Week ending', s.week)}
     </div>
+    <div style="margin:4px 0 10px">Tag <span class="tagbtns" id="dTags" data-sym="${esc(sym)}">${COLORS.map(([c, hex]) => `<button style="background:${hex}" data-c="${c}" title="${esc(T.labels[c] || c)}" aria-pressed="${tagOf(sym) === c}"></button>`).join('')}<button class="x" data-c="x" aria-pressed="${tagOf(sym) === 'x'}">✕ pass</button></span></div>
     <label>Status <select id="nStatus"><option value="">—</option>${['watching', 'bought', 'passed', 'sold'].map(v => `<option ${n.status === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
     <label style="display:block;margin-top:8px">Notes <textarea id="nText" placeholder="Why it's interesting, levels, what you did…">${esc(n.note || '')}</textarea></label>
-    <p class="help">Status and notes are saved in this browser only.</p>`;
+    <p class="help">Tags, status and notes sync via the repo when a token is set (⚙︎ at the top).</p>`;
   d.classList.add('open'); d.setAttribute('aria-hidden', 'false'); $('#scrim').classList.add('open');
   $('#dclose').onclick = closeDrawer;
   const save = () => { const st = $('#nStatus').value, tx = $('#nText').value.trim(); if (st || tx) notes[sym] = {status: st, note: tx, t: Date.now()}; else delete notes[sym]; saveNotes(); renderSignals(); renderApproach(); renderAll(); };
   $('#nStatus').onchange = save; $('#nText').oninput = save;
+  $('#dTags').onclick = e => { const b = e.target.closest('button'); if (!b) return; setTag(sym, b.dataset.c); $('#dTags').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', tagOf(sym) === x.dataset.c)); };
   drawBig(s);
 }
 const kv = (l, v) => `<div><span>${l}</span>${v}</div>`;
