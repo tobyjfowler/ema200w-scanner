@@ -377,8 +377,8 @@ function spark(s, w = 120, h = 32) {
   const x = i => (i / (n - 1) * w).toFixed(1), y = v => (h - 2 - (v - lo) / rng * (h - 4)).toFixed(1);
   const path = a => a.map((v, i) => v == null ? '' : (i && a[i - 1] != null ? 'L' : 'M') + x(i) + ' ' + y(v)).join(' ');
   const bp = D.params.band_pct / 100;
-  const band = e.map((v, i) => v == null ? '' : (i ? 'L' : 'M') + x(i) + ' ' + y(v * (1 + bp))).join(' ') +
-    ' ' + [...e].reverse().map((v, j) => v == null ? '' : 'L' + x(n - 1 - j) + ' ' + y(v * (1 - bp))).join(' ') + ' Z';
+  const idx = e.map((v, i) => v == null ? null : i).filter(i => i != null);
+  const band = idx.length ? 'M' + idx.map(i => x(i) + ' ' + y(e[i] * (1 + bp))).join(' L') + ' L' + [...idx].reverse().map(i => x(i) + ' ' + y(e[i] * (1 - bp))).join(' L') + ' Z' : '';
   const dots = s.sg.map(i => `<circle class="d" cx="${x(i)}" cy="${y(c[i])}" r="2.2"/>`).join('');
   return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><path class="b" d="${band}"/><path class="e" d="${path(e)}"/><path class="c" d="${path(c)}"/>${dots}</svg>`;
 }
@@ -657,7 +657,8 @@ function drawBig(s) {
   const lo = Math.min(...vals) * 0.98, hi = Math.max(...vals) * 1.02;
   const x = i => pl + (W - pl - pr) * i / (n - 1), y = v => pt + (Hh - pt - pb) * (1 - (v - lo) / (hi - lo));
   const path = a => a.map((v, i) => v == null ? '' : (i && a[i - 1] != null ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join(' ');
-  const band = e.map((v, i) => v == null ? '' : (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v * (1 + bp)).toFixed(1)).join(' ') + ' ' + [...e].reverse().map((v, j) => v == null ? '' : 'L' + x(n - 1 - j).toFixed(1) + ' ' + y(v * (1 - bp)).toFixed(1)).join(' ') + ' Z';
+  const idx = e.map((v, i) => v == null ? null : i).filter(i => i != null);
+  const band = idx.length ? 'M' + idx.map(i => x(i).toFixed(1) + ' ' + y(e[i] * (1 + bp)).toFixed(1)).join(' L') + ' L' + [...idx].reverse().map(i => x(i).toFixed(1) + ' ' + y(e[i] * (1 - bp)).toFixed(1)).join(' L') + ' Z' : '';
   const ticks = niceTicks(lo, hi, 4);
   let out = ticks.map(v => `<line class="g" x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}"/><text x="${pl - 5}" y="${y(v) + 3}" text-anchor="end">${v}</text>`).join('');
   out += `<path class="b" d="${band}"/><path class="e" d="${path(e)}"/><path class="c" d="${path(c)}"/>`;
