@@ -48,6 +48,7 @@ jobs:
           else
             python build_dashboard.py --push 2>&1 | tee data/last_run.log
           fi
+          python build_fund.py --push 2>&1 | tee -a data/last_run.log
 
       - name: Commit updated data (and the run log)
         if: always()
@@ -55,7 +56,7 @@ jobs:
           git config user.name "scanner-bot"
           git config user.email "scanner-bot@users.noreply.github.com"
           git add -f data/last_run.log
-          git add data/latest.json data/history.json data/exchanges.json
+          git add data/latest.json data/history.json data/exchanges.json data/funds.json
           git diff --cached --quiet || git commit -m "data: scan $(date -u +%Y-%m-%d)"
           git push
 
@@ -63,7 +64,7 @@ jobs:
         run: |
           mkdir -p site/data
           cp index.html site/
-          cp data/latest.json data/history.json site/data/
+          cp data/latest.json data/history.json data/funds.json site/data/
 
       - uses: actions/upload-pages-artifact@v3
         with:

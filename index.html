@@ -48,6 +48,19 @@ h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
 #views { border-right: 1px solid var(--border); padding-right: 14px; margin-right: -6px; } #views .tab { font-weight: 600; }
 body.view-markets #tabs, body.view-markets section#sigSection, body.view-markets section#appSection, body.view-markets section#allSection { display: none !important; }
 body.view-stocks section#mktSection, body.view-stocks section#regimeSection, body.view-stocks section#rotSection { display: none !important; }
+body:not(.view-funds) section#fundSection { display: none !important; }
+body.view-funds #tabs, body.view-funds section#breadthSection, body.view-funds section#sigSection, body.view-funds section#appSection, body.view-funds section#allSection, body.view-funds section#mktSection, body.view-funds section#regimeSection, body.view-funds section#rotSection, body.view-funds section#histSection { display: none !important; }
+.fstrip { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: baseline; margin-bottom: 8px; }
+.fstrip .px { font-size: 30px; font-weight: 600; letter-spacing: -.02em; }
+.fstrip .lv { font-size: 15px; } .fstrip .lv b { font-weight: 600; } .fstrip .lv i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.fstate { color: var(--ink-2); font-size: 13px; margin-bottom: 10px; }
+.fchart { width: 100%; height: 340px; } .fchart .g { stroke: var(--grid); } .fchart text { fill: var(--muted); font-size: 10px; }
+.fchart .px { fill: none; stroke: var(--ink); stroke-width: 1.2; } .fchart .d { fill: none; stroke: var(--s1); stroke-width: 1.6; } .fchart .w1 { fill: none; stroke: var(--s3); stroke-width: 1.8; } .fchart .w2 { fill: none; stroke: var(--s2); stroke-width: 2; }
+.fchart .bl { fill: var(--bad-bg); } .fchart .xh { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.fdist { width: 100%; height: 110px; } .fdist .g { stroke: var(--grid); } .fdist text { fill: var(--muted); font-size: 10px; } .fdist .l { fill: none; stroke: var(--s1); stroke-width: 1.2; } .fdist .z { stroke: var(--axis); } .fdist .bd { fill: var(--band); }
+.range { display: flex; gap: 4px; margin-bottom: 8px; } .range .btn[aria-pressed="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); }
+.ladder td.l i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px; vertical-align: -1px; }
+details { margin-top: 10px; } summary { cursor: pointer; color: var(--ink-2); font-weight: 600; font-size: 13px; padding: 6px 0; } details .tablewrap { margin-top: 6px; }
 .regime { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
 .rg { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; border-left: 4px solid var(--muted); }
 .rg.on { border-left-color: var(--good); } .rg.off { border-left-color: var(--bad); } .rg.mixed { border-left-color: #c98500; }
@@ -127,12 +140,12 @@ svg.spark { display: block; } .spark .c { fill: none; stroke: var(--ink); stroke
       <h1>200W EMA Scanner</h1>
       <div class="meta" id="meta">Loading…</div>
     </div>
-    <div class="tabs" role="tablist" id="views"><button class="tab view" data-v="stocks" aria-selected="true">Stocks</button><button class="tab view" data-v="markets" aria-selected="false">Markets</button></div>
+    <div class="tabs" role="tablist" id="views"><button class="tab view" data-v="stocks" aria-selected="true">Stocks</button><button class="tab view" data-v="markets" aria-selected="false">Markets</button><button class="tab view" data-v="funds" aria-selected="false">Vanguard</button></div>
     <div class="tabs" role="tablist" id="tabs"></div>
     <label class="theme"><select id="theme"><option value="auto">Auto theme</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
   </header>
 
-  <section>
+  <section id="breadthSection">
     <h2>Market breadth <small id="breadthLabel"></small></h2>
     <div class="tiles" id="tiles"></div>
     <div class="row2" style="margin-top:12px">
@@ -168,6 +181,22 @@ svg.spark { display: block; } .spark .c { fill: none; stroke: var(--ink); stroke
     <p class="help">Indexes use the cash index; commodities use Yahoo's continuous front-month futures (not back-adjusted, so small roll gaps exist); TLT/HYG are ETFs. Same 200W / 200D logic as the stocks.</p>
   </section>
 
+  <section id="fundSection">
+    <div class="h2row"><h2 id="fundTitle">Vanguard</h2><div class="tabs" id="fundTabs"></div></div>
+    <div class="fstrip" id="fstrip"></div>
+    <div class="fstate" id="fstate"></div>
+    <div class="range" id="frange"><button class="btn" data-r="1">1y</button><button class="btn" data-r="3">3y</button><button class="btn" data-r="5" aria-pressed="true">5y</button><button class="btn" data-r="0">All</button></div>
+    <svg class="fchart" id="fchart"></svg>
+    <div class="legend"><span><i style="background:var(--ink)"></i>Price</span><span><i style="background:var(--s1)"></i>200-day EMA</span><span><i style="background:var(--s3)"></i>100-week EMA</span><span><i style="background:var(--s2)"></i>200-week EMA</span><span><i style="background:var(--bad-bg);height:8px"></i>below 200D</span></div>
+    <div class="help" style="margin:10px 0 2px">Distance from the 200D (%), same period — the shaded band is ±3%</div>
+    <svg class="fdist" id="fdist"></svg>
+    <h2 style="margin-top:18px">Level ladder</h2>
+    <div class="tablewrap"><table id="fladder" class="ladder"></table></div>
+    <p class="help" id="fladderHelp"></p>
+    <div id="fhist"></div>
+    <p class="help">Alerts (Telegram, once per episode): price within 3% of or below any of the three EMAs, and a close back above the 200D after at least five days below it. Fund prices are daily NAVs from Yahoo — one price a day, no intraday range.</p>
+  </section>
+
   <section id="allSection">
     <h2>All stocks <small id="count"></small></h2>
     <div class="controls">
@@ -191,7 +220,7 @@ svg.spark { display: block; } .spark .c { fill: none; stroke: var(--ink); stroke
     <div class="pager"><span id="pageInfo"></span><button id="prev">‹</button><button id="next">›</button></div>
   </section>
 
-  <section>
+  <section id="histSection">
     <h2>Signal history &amp; outcomes <small>every signal in the last 5 years with forward returns</small></h2>
     <div class="controls">
       <select id="hMode"><option value="touch">Touch &amp; hold</option><option value="reclaim">Reclaim</option><option value="">Both</option></select>
@@ -224,12 +253,12 @@ try { const t = localStorage.getItem('ema200w-theme'); if (t) { $('#theme').valu
 function applyTheme(t) { if (t === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t; }
 $('#theme').onchange = e => { applyTheme(e.target.value); try { localStorage.setItem('ema200w-theme', e.target.value); } catch {} };
 
-let D, H, view = 'stocks', universe = 'all', page = 0, hPage = 0, sortKey = 'pct_from_200w', sortDir = 1, hSortKey = 'date', hSortDir = -1;
-try { const v = localStorage.getItem('ema200w-view'); if (v === 'markets' || v === 'stocks') view = v; } catch {}
+let D, H, F, fundIdx = 0, fundRange = 5, view = 'stocks', universe = 'all', page = 0, hPage = 0, sortKey = 'pct_from_200w', sortDir = 1, hSortKey = 'date', hSortDir = -1;
+try { const v = localStorage.getItem('ema200w-view'); if (v === 'markets' || v === 'stocks' || v === 'funds') view = v; } catch {}
 const PAGE = 50;
 
-Promise.all([fetch('data/latest.json').then(r => r.json()), fetch('data/history.json').then(r => r.json()).catch(() => ({runs: [], live_signals: {}}))])
-  .then(([d, h]) => { D = d; H = h; init(); })
+Promise.all([fetch('data/latest.json').then(r => r.json()), fetch('data/history.json').then(r => r.json()).catch(() => ({runs: [], live_signals: {}})), fetch('data/funds.json').then(r => r.json()).catch(() => ({funds: []}))])
+  .then(([d, h, f]) => { D = d; H = h; F = f; init(); })
   .catch(e => { $('#meta').textContent = 'Could not load data/latest.json — has the scan run yet? ' + e; });
 
 function init() {
@@ -242,6 +271,9 @@ function init() {
   $('#views').onclick = e => { const b = e.target.closest('.view'); if (!b) return; view = b.dataset.v; hPage = 0; try { localStorage.setItem('ema200w-view', view); } catch {} render(); };
   $('#expMkt').onclick = () => exportTV([[`200W markets ${D.generated.slice(0, 10)}`, lastMkt]], `200W-markets-${D.generated.slice(0, 10)}.txt`);
   if (!D.universes.markets) $('#views').style.display = 'none';
+  if (!F.funds || !F.funds.length) $('#views .view[data-v="funds"]').style.display = 'none';
+  $('#frange').onclick = e => { const b = e.target.closest('.btn'); if (!b) return; fundRange = +b.dataset.r; renderFund(); };
+  $('#fundTabs').onclick = e => { const b = e.target.closest('.tab'); if (!b) return; fundIdx = +b.dataset.i; renderFund(); };
   const sectors = [...new Set(D.stocks.filter(s => s.universe !== 'markets').map(s => s.sector).filter(Boolean))].sort();
   $('#sector').innerHTML += sectors.map(s => `<option>${esc(s)}</option>`).join('');
   ['#q', '#sector', '#filt', '#onlyRegime'].forEach(s => $(s).addEventListener('input', () => { page = 0; renderAll(); }));
@@ -252,7 +284,7 @@ function init() {
   $('#hNext').onclick = () => { hPage++; renderHist(); };
   $('#scrim').onclick = closeDrawer;
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
-  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(renderBreadth, 150); });
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => view === 'funds' ? renderFund() : renderBreadth(), 150); });
   render();
 }
 
@@ -276,6 +308,7 @@ function render() {
   document.body.className = 'view-' + view;
   document.querySelectorAll('#tabs .tab').forEach(b => b.setAttribute('aria-selected', b.dataset.u === universe));
   document.querySelectorAll('#views .tab').forEach(b => b.setAttribute('aria-selected', b.dataset.v === view));
+  if (view === 'funds') { renderFund(); return; }
   renderBreadth();
   if (view === 'markets') renderMarkets(); else { renderSignals(); renderApproach(); renderAll(); }
   renderHist();
@@ -508,6 +541,83 @@ function renderHist() {
       ['fwd_4w', 'fwd_12w', 'fwd_26w', 'mdd_26w', 'fwd_now'].map(k => `<td class="${cls(r[k])}">${fmt(r[k])}</td>`).join('') + '</tr>').join('') + '</tbody>';
   t.querySelector('thead').onclick = e => { const th = e.target.closest('th'); if (!th) return; if (hSortKey === th.dataset.k) hSortDir *= -1; else { hSortKey = th.dataset.k; hSortDir = -1; } renderHist(); };
   t.querySelector('tbody').onclick = rowClick;
+}
+
+/* ---------- funds ---------- */
+const LVC = {ema200d: 'var(--s1)', ema100w: 'var(--s3)', ema200w: 'var(--s2)'};
+function renderFund() {
+  const f = F.funds[fundIdx]; if (!f) return;
+  $('#fundTabs').innerHTML = F.funds.map((x, i) => `<button class="tab" data-i="${i}" aria-selected="${i === fundIdx}">${esc(x.label)}</button>`).join('');
+  $('#fundTitle').textContent = f.name;
+  $('#fstrip').innerHTML = `<span class="px">${f.close}</span>` + f.levels.map(lv => `<span class="lv"><i style="background:${LVC[lv.key]}"></i>${lv.label} <b>${lv.value}</b> <span class="${cls(lv.pct)}">${fmt(lv.pct)}</span></span>`).join('') +
+    `<span class="lv" style="color:var(--muted)">1m ${fmt(f.ret_1m)} · 3m ${fmt(f.ret_3m)} · 12m ${fmt(f.ret_12m)}</span>`;
+  const lt = lv => lv.last_touch ? `${lv.last_touch.slice(0, 7)} (${lv.weeks_since_touch}w ago)` : 'never';
+  $('#fstate').textContent = `As of ${f.date}: ${f.state}. Last touch — ` + f.levels.map(lv => `${lv.label} ${lt(lv)}`).join(' · ') + '.';
+  document.querySelectorAll('#frange .btn').forEach(b => b.setAttribute('aria-pressed', +b.dataset.r === fundRange));
+  drawFund(f); drawDist(f); renderLadder(f); renderFundHist(f);
+}
+function fundSlice(f) {
+  const s = f.series, n = s.dates.length, k = fundRange ? Math.max(0, n - Math.round(fundRange * 252)) : 0;
+  return {dates: s.dates.slice(k), close: s.close.slice(k), d: s.ema200d.slice(k), w1: s.ema100w.slice(k), w2: s.ema200w.slice(k)};
+}
+function drawFund(f) {
+  const svg = $('#fchart'), W = svg.clientWidth || 900, Hh = 340, pl = 52, pr = 10, pt = 10, pb = 22;
+  const S = fundSlice(f), n = S.dates.length;
+  svg.setAttribute('viewBox', `0 0 ${W} ${Hh}`);
+  const vals = [...S.close, ...S.d, ...S.w1, ...S.w2].filter(v => v != null);
+  const lo = Math.min(...vals) * 0.98, hi = Math.max(...vals) * 1.02;
+  const x = i => pl + (W - pl - pr) * i / (n - 1), y = v => pt + (Hh - pt - pb) * (1 - (v - lo) / (hi - lo));
+  const path = a => a.map((v, i) => v == null ? '' : (i && a[i - 1] != null ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join(' ');
+  let out = niceTicks(lo, hi, 6).map(v => `<line class="g" x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}"/><text x="${pl - 6}" y="${y(v) + 3}" text-anchor="end">${v}</text>`).join('');
+  // shade below 200D
+  let seg = '';
+  for (let i = 0; i < n; i++) {
+    const below = S.close[i] != null && S.d[i] != null && S.close[i] < S.d[i];
+    if (below && !seg) seg = `M${x(i).toFixed(1)} ${y(S.d[i]).toFixed(1)}`;
+    if (below) seg += ` L${x(i).toFixed(1)} ${y(S.close[i]).toFixed(1)}`;
+    if ((!below || i === n - 1) && seg) { const j = below ? i : i - 1; let back = ''; for (let k = j; k >= 0 && S.close[k] < S.d[k]; k--) back += ` L${x(k).toFixed(1)} ${y(S.d[k]).toFixed(1)}`; out += `<path class="bl" d="${seg}${back} Z"/>`; seg = ''; }
+  }
+  out += `<path class="w2" d="${path(S.w2)}"/><path class="w1" d="${path(S.w1)}"/><path class="d" d="${path(S.d)}"/><path class="px" d="${path(S.close)}"/>`;
+  // year ticks
+  let lastY = '';
+  S.dates.forEach((dt, i) => { const yv = dt.slice(0, 4); if (yv !== lastY) { lastY = yv; if (i > 0) out += `<line class="g" x1="${x(i)}" x2="${x(i)}" y1="${pt}" y2="${Hh - pb}"/><text x="${x(i) + 3}" y="${Hh - 6}">${yv}</text>`; } });
+  if (n < 400) { [0, Math.floor(n / 2), n - 1].forEach(i => { out += `<text x="${x(i)}" y="${Hh - 6}" text-anchor="${i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}" style="font-weight:600">${S.dates[i]}</text>`; }); }
+  out += `<line class="xh" id="fxh" x1="0" x2="0" y1="${pt}" y2="${Hh - pb}" style="display:none"/>`;
+  svg.innerHTML = out;
+  svg.onmousemove = ev => {
+    const r = svg.getBoundingClientRect(), i = Math.round((ev.clientX - r.left - pl * r.width / W) / (r.width * (W - pl - pr) / W) * (n - 1));
+    if (i < 0 || i >= n) return hideTip();
+    const l = $('#fxh'); l.style.display = ''; l.setAttribute('x1', x(i)); l.setAttribute('x2', x(i));
+    const pc = (a, b) => a != null && b != null ? ` (${fmt((a / b - 1) * 100)})` : '';
+    showTip(ev, `<b>${S.dates[i]}</b><br>Price ${S.close[i]}<br>200D ${S.d[i] ?? '–'}${pc(S.close[i], S.d[i])}<br>100W ${S.w1[i] ?? '–'}${pc(S.close[i], S.w1[i])}<br>200W ${S.w2[i] ?? '–'}${pc(S.close[i], S.w2[i])}`);
+  };
+  svg.onmouseleave = () => { hideTip(); $('#fxh').style.display = 'none'; };
+}
+function drawDist(f) {
+  const svg = $('#fdist'), W = svg.clientWidth || 900, Hh = 110, pl = 52, pr = 10, pt = 6, pb = 6;
+  const S = fundSlice(f), n = S.dates.length;
+  const p = S.close.map((c, i) => c != null && S.d[i] != null ? (c / S.d[i] - 1) * 100 : null);
+  const vals = p.filter(v => v != null); if (!vals.length) return;
+  const lo = Math.min(-5, ...vals) - 1, hi = Math.max(5, ...vals) + 1;
+  svg.setAttribute('viewBox', `0 0 ${W} ${Hh}`);
+  const x = i => pl + (W - pl - pr) * i / (n - 1), y = v => pt + (Hh - pt - pb) * (1 - (v - lo) / (hi - lo));
+  let out = `<rect class="bd" x="${pl}" y="${y(3)}" width="${W - pl - pr}" height="${y(-3) - y(3)}"/>`;
+  out += [Math.ceil(lo / 5) * 5, 0, Math.floor(hi / 5) * 5].filter((v, i, a) => a.indexOf(v) === i).map(v => `<line class="${v === 0 ? 'z' : 'g'}" x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}"/><text x="${pl - 6}" y="${y(v) + 3}" text-anchor="end">${v > 0 ? '+' : ''}${v}%</text>`).join('');
+  out += `<path class="l" d="${p.map((v, i) => v == null ? '' : (i && p[i - 1] != null ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join(' ')}"/>`;
+  svg.innerHTML = out;
+}
+function renderLadder(f) {
+  const rows = f.levels.map(lv => `<tr><td class="l"><i style="background:${LVC[lv.key]}"></i><b>${lv.label} EMA</b></td><td>${lv.value}</td><td class="${cls(lv.pct)}">${fmt(lv.pct)}</td><td>${lv.pct > 0 ? fmt(lv.fall_to) : 'below'}</td><td class="${cls(lv.slope_3m)}">${fmt(lv.slope_3m)}</td><td>${lv.last_touch ? lv.last_touch + ' · ' + lv.weeks_since_touch + 'w ago' : 'never'}</td><td>${lv.pct_percentile == null ? '–' : lv.pct_percentile + 'th'}</td><td>${(100 * lv.days_in_band / lv.days_total).toFixed(0)}% / ${(100 * lv.days_below / lv.days_total).toFixed(0)}%</td></tr>`).join('');
+  $('#fladder').innerHTML = `<thead><tr><th class="l">Level</th><th>Value</th><th>Price vs level</th><th>Fall to reach</th><th>Slope 3m</th><th>Last touch</th><th>Distance percentile</th><th>Days in band / below</th></tr></thead><tbody>${rows}</tbody>`;
+  const d200 = f.levels[0], yrs = Object.entries(d200.closest_by_year).slice(-8);
+  $('#fladderHelp').innerHTML = `<b>Distance percentile</b>: where today's gap sits in the history of that level (100th = most stretched ever). <b>Closest approach to the 200D each year</b>: ` + yrs.map(([y, v]) => `${y} <span class="${cls(v)}">${fmt(v)}</span>`).join(' · ') + '.';
+}
+function renderFundHist(f) {
+  const tbl = (eps, isW) => eps.length ? `<div class="tablewrap"><table><thead><tr><th class="l">First touch</th><th>Days</th><th>Deepest</th><th>Days below</th><th>1m</th><th>3m</th><th>6m</th><th>12m</th><th>Ended</th></tr></thead><tbody>` +
+    eps.map(e => `<tr><td class="l">${e.start}</td><td>${e.days}</td><td class="${cls(e.deepest)}">${fmt(e.deepest)}</td><td>${e.days_below}</td>${['f1m', 'f3m', 'f6m', 'f12m'].map(k => `<td class="${cls(e[k])}">${fmt(e[k])}</td>`).join('')}<td>${e.end || 'ongoing'}</td></tr>`).join('') + '</tbody></table></div>' : '<p class="help">No touches in the available history.</p>';
+  const rtbl = rc => rc.length ? `<div class="tablewrap"><table><thead><tr><th class="l">Date</th><th>Close</th><th>EMA</th><th>1m</th><th>3m</th><th>6m</th><th>12m</th><th>Max DD 6m</th></tr></thead><tbody>` +
+    rc.map(r => `<tr><td class="l">${r.date}</td><td>${r.close}</td><td>${r.level}</td>${['f1m', 'f3m', 'f6m', 'f12m', 'mdd6m'].map(k => `<td class="${cls(r[k])}">${fmt(r[k])}</td>`).join('')}</tr>`).join('') + '</tbody></table></div>' : '';
+  $('#fhist').innerHTML = f.levels.map(lv => `<details><summary>${lv.label} EMA — touch history (${lv.episodes.length} episodes, ${lv.reclaims.length} reclaims)</summary>${tbl(lv.episodes)}${lv.reclaims.length ? `<p class="help" style="margin:10px 0 0">Reclaims — first close back above after ≥5 days below:</p>${rtbl(lv.reclaims)}` : ''}</details>`).join('');
 }
 
 /* ---------- drawer ---------- */
