@@ -267,6 +267,9 @@ def fetch_daily(tickers: list[str], years: int) -> dict[str, pd.DataFrame]:
                     if c not in df.columns or df[c].isna().all():
                         df[c] = df["Close"]
                 df = df[["Open", "High", "Low", "Close"]].dropna(subset=["Close"])
+                df = df[df["Close"] > 0]                      # drop bad prints (zero NAVs etc.)
+                for c in ("Open", "High", "Low"):
+                    df.loc[df[c] <= 0, c] = df["Close"]
                 if len(df):
                     out[t] = df
             except Exception as e:

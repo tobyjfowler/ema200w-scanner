@@ -101,8 +101,14 @@ def tv_symbol(sym: str, exch: str = "") -> str:
     return f"{pref}:{base}" if pref else base
 
 
-def r2(x):
-    return None if x is None or (isinstance(x, float) and np.isnan(x)) else round(float(x), 2)
+def r2(x, d=2):
+    if x is None:
+        return None
+    try:
+        v = float(x)
+    except (TypeError, ValueError):
+        return None
+    return None if not np.isfinite(v) else round(v, d)
 
 
 def scan_universe(name: str, args, exchanges: dict[str, str]) -> tuple[list[dict], list[dict]]:
@@ -315,7 +321,7 @@ def main():
         "signals": sorted(all_signals, key=lambda r: r["date"], reverse=True),
     }
     with open(os.path.join(DATA_DIR, "latest.json"), "w") as f:
-        json.dump(latest, f, separators=(",", ":"))
+        json.dump(latest, f, separators=(",", ":"), allow_nan=False)
     with open(hist_path, "w") as f:
         json.dump(history, f, separators=(",", ":"))
     print(f"wrote {len(all_stocks)} stocks, {len(all_signals)} historic signals, "

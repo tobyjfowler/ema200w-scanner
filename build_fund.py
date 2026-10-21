@@ -28,7 +28,13 @@ OUT = os.path.join(DATA_DIR, "funds.json")
 
 
 def r2(x, d=2):
-    return None if x is None or (isinstance(x, float) and np.isnan(x)) else round(float(x), d)
+    if x is None:
+        return None
+    try:
+        v = float(x)
+    except (TypeError, ValueError):
+        return None
+    return None if not np.isfinite(v) else round(v, d)
 
 
 def fwd(c, i, h):
@@ -165,7 +171,7 @@ def main():
 
     out = {"generated": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%MZ"), "band_pct": BAND, "funds": funds, "fired": fired}
     with open(OUT, "w") as fh:
-        json.dump(out, fh, separators=(",", ":"))
+        json.dump(out, fh, separators=(",", ":"), allow_nan=False)
     print(f"wrote {len(funds)} funds, {len(new_alerts)} new alerts", file=sys.stderr)
 
     if args.push and new_alerts:
