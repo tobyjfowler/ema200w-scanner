@@ -111,10 +111,14 @@ svg.spark { display: block; } .spark .c { fill: none; stroke: var(--ink); stroke
 .pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; color: var(--muted); font-size: 12px; margin-top: 8px; }
 .pager button, .btn { font: inherit; font-size: 12px; padding: 4px 10px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); border-radius: 6px; cursor: pointer; }
 /* drawer */
-.drawer { position: fixed; inset: 0 0 0 auto; width: min(560px, 100%); background: var(--surface); border-left: 1px solid var(--border); box-shadow: -8px 0 30px rgba(0,0,0,.25); transform: translateX(100%); transition: transform .2s; overflow-y: auto; padding: 18px; z-index: 10; }
+.drawer { position: fixed; inset: 0 0 0 auto; width: min(960px, 100%); background: var(--surface); border-left: 1px solid var(--border); box-shadow: -8px 0 30px rgba(0,0,0,.25); transform: translateX(100%); transition: transform .2s; overflow-y: auto; padding: 18px; z-index: 10; }
 .drawer.open { transform: none; }
 .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; z-index: 9; } .scrim.open { display: block; }
-.drawer h3 { margin: 0; font-size: 20px; } .drawer .sub { color: var(--muted); margin-bottom: 12px; }
+.drawer h3 { margin: 0; font-size: 20px; }
+.tvwrap { position: relative; height: 520px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface-2); } .tvwrap iframe { width: 100%; height: 100%; border: 0; display: block; }
+.chartsw { display: flex; gap: 6px; align-items: center; margin: 8px 0; } .chartsw .btn[aria-pressed="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); }
+@media (max-width: 720px) { .tvwrap { height: 380px; } }
+.drawer .nav { display: inline-flex; gap: 4px; margin-left: 10px; vertical-align: middle; } .drawer .sub { color: var(--muted); margin-bottom: 12px; }
 .kv { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; margin: 12px 0; font-size: 13px; }
 .kv div span { color: var(--muted); display: block; font-size: 11px; }
 .drawer textarea, .drawer select { width: 100%; font: inherit; font-size: 13px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-2); color: var(--ink); }
@@ -361,7 +365,17 @@ function init() {
   $('#hPrev').onclick = () => { hPage = Math.max(0, hPage - 1); renderHist(); };
   $('#hNext').onclick = () => { hPage++; renderHist(); };
   $('#scrim').onclick = closeDrawer;
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') return closeDrawer();
+    if (!$('#drawer').classList.contains('open') || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    const sym = $('#drawer').dataset.sym; if (!sym) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'j' || e.key === 'k') {
+      const rows = [...document.querySelectorAll('section:not([style*="display: none"]) tbody tr[data-sym]')].filter(r => r.offsetParent !== null).map(r => r.dataset.sym);
+      const i = rows.indexOf(sym); const nx = rows[i + ((e.key === 'ArrowDown' || e.key === 'j') ? 1 : -1)]; if (nx) { openDrawer(nx); e.preventDefault(); }
+    } else if (/^[1-6]$/.test(e.key)) { setTag(sym, COLORS[+e.key - 1][0]); openDrawer(sym); }
+    else if (e.key === 'x') { setTag(sym, 'x'); openDrawer(sym); }
+    else if (e.key === 'Enter') { window.open(`https://www.tradingview.com/chart/?symbol=${encodeURIComponent((ALL || D.stocks).find(x => x.symbol === sym)?.tv || sym)}&interval=W`, '_blank'); }
+  });
   $('#gear').onclick = () => { $('#settings').classList.toggle('open'); if (view !== 'stocks') { view = 'stocks'; render(); } renderLabels(); };
   $('#ghtoken').value = ghToken();
   $('#saveToken').onclick = async () => { try { localStorage.setItem('ema200w-ghtoken', $('#ghtoken').value.trim()); } catch {} await loadTriage(); render(); };
@@ -729,12 +743,14 @@ function rowClick(e) { const tr = e.target.closest('tr[data-sym]'); if (tr) open
 function openDrawer(sym) {
   const s = (ALL || D.stocks).find(x => x.symbol === sym); if (!s) return;
   const n = notes[sym] || {};
-  const d = $('#drawer');
+  const d = $('#drawer'); d.dataset.sym = sym;
   d.innerHTML = `<button class="btn close" id="dclose" aria-label="Close">✕</button>
     <h3>${s.universe === 'markets' ? esc(s.name) : esc(s.symbol)} ${uniChips(s)}</h3>
     <div class="sub">${s.universe === 'markets' ? esc(s.symbol) : esc(s.name)}${s.sector ? ' · ' + esc(s.sector) : ''} · <a target="_blank" rel="noopener" href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(s.tv)}&interval=W">Open weekly chart in TradingView ↗</a></div>
     <div class="legend"><span><i style="background:var(--ink)"></i>Close</span><span><i style="background:var(--s1)"></i>200W EMA</span><span><i style="background:var(--band);height:8px"></i>±${D.params.band_pct}% band</span><span><i style="background:var(--s3);height:6px;width:6px;border-radius:50%"></i>Signal</span></div>
-    <svg class="big" id="bigChart"></svg>
+    <div class="chartsw"><button class="btn" data-ch="tv" aria-pressed="${chartMode === 'tv'}">TradingView chart</button><button class="btn" data-ch="simple" aria-pressed="${chartMode === 'simple'}">Simple chart</button><span class="help" style="margin:0 0 0 8px">Weekly · EMA 200 (200W) and EMA 40 (≈200D) · TV data is delayed on the free widget</span></div>
+    <div class="tvwrap" id="tvwrap" style="display:${chartMode === 'tv' ? 'block' : 'none'}"></div>
+    <svg class="big" id="bigChart" style="display:${chartMode === 'simple' ? 'block' : 'none'}"></svg>
     <div class="kv">
       ${kv('Close', s.close)}${kv('200W EMA', s.ema200w)}${kv('200D EMA', s.ema200d)}
       ${kv('% from 200W', fmt(s.pct_from_200w))}${kv('Low this week vs 200W', fmt(s.low_pct_from_200w))}${kv('Above band top', s.pct_to_band > 0 ? fmt(s.pct_to_band, 1, false) : 'inside / below')}
@@ -745,13 +761,21 @@ function openDrawer(sym) {
     <div style="margin:4px 0 10px">Tag <span class="tagbtns" id="dTags" data-sym="${esc(sym)}">${COLORS.map(([c, hex]) => `<button style="background:${hex}" data-c="${c}" title="${esc(T.labels[c] || c)}" aria-pressed="${tagOf(sym) === c}"></button>`).join('')}<button class="x" data-c="x" aria-pressed="${tagOf(sym) === 'x'}">✕ pass</button></span></div>
     <label>Status <select id="nStatus"><option value="">—</option>${['watching', 'bought', 'passed', 'sold'].map(v => `<option ${n.status === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
     <label style="display:block;margin-top:8px">Notes <textarea id="nText" placeholder="Why it's interesting, levels, what you did…">${esc(n.note || '')}</textarea></label>
-    <p class="help">Tags, status and notes sync via the repo when a token is set (⚙︎ at the top).</p>`;
+    <p class="help">Keyboard: ↑/↓ next stock · 1–6 tag · X pass · Enter open in TradingView · Esc close. Tags, status and notes sync via the repo when a token is set (⚙︎ at the top).</p>`;
   d.classList.add('open'); d.setAttribute('aria-hidden', 'false'); $('#scrim').classList.add('open');
   $('#dclose').onclick = closeDrawer;
   const save = () => { const st = $('#nStatus').value, tx = $('#nText').value.trim(); if (st || tx) notes[sym] = {status: st, note: tx, t: Date.now()}; else delete notes[sym]; saveNotes(); renderSignals(); renderApproach(); renderAll(); };
   $('#nStatus').onchange = save; $('#nText').oninput = save;
   $('#dTags').onclick = e => { const b = e.target.closest('button'); if (!b) return; setTag(sym, b.dataset.c); $('#dTags').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', tagOf(sym) === x.dataset.c)); };
-  drawBig(s);
+  $('.chartsw').onclick = e => { const b = e.target.closest('.btn'); if (!b) return; chartMode = b.dataset.ch; try { localStorage.setItem('ema200w-chart', chartMode); } catch {} openDrawer(sym); };
+  if (chartMode === 'tv') mountTV(s); else drawBig(s);
+}
+let chartMode = 'tv'; try { chartMode = localStorage.getItem('ema200w-chart') || 'tv'; } catch {}
+function mountTV(s) {
+  const dark = document.documentElement.dataset.theme === 'dark' || (!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
+  const studies = encodeURIComponent(JSON.stringify([{id: 'MAExp@tv-basicstudies', inputs: {length: 200}}, {id: 'MAExp@tv-basicstudies', inputs: {length: 40}}]));
+  const src = `https://s.tradingview.com/widgetembed/?symbol=${encodeURIComponent(s.tv)}&interval=W&hidesidetoolbar=0&symboledit=1&saveimage=0&toolbarbg=${dark ? '1a1a19' : 'f1f3f6'}&studies=${studies}&theme=${dark ? 'dark' : 'light'}&style=1&timezone=Europe%2FLondon&withdateranges=1&hidevolume=1&locale=en&utm_source=dashboard`;
+  $('#tvwrap').innerHTML = `<iframe src="${src}" allowtransparency="true" allow="clipboard-write" loading="eager"></iframe>`;
 }
 const kv = (l, v) => `<div><span>${l}</span>${v}</div>`;
 function closeDrawer() { $('#drawer').classList.remove('open'); $('#drawer').setAttribute('aria-hidden', 'true'); $('#scrim').classList.remove('open'); }
