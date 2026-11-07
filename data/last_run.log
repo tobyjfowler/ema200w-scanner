@@ -1,7 +1,7 @@
 [sp500] 503 symbols
 
 1 Failed download:
-['AEE']: OperationalError('database is locked')
+['CMI']: OperationalError('database is locked')
   fetched 100/503
   fetched 200/503
   fetched 300/503
@@ -36,7 +36,7 @@ $BTA.L: No data found, symbol may be delisted
 [markets] 25 symbols
   fetched 25/25
 [markets] data for 25
-wrote 1342 stocks, 7305 historic signals, 25 new live signals
+wrote 1342 stocks, 7303 historic signals, 5 new live signals
   fetched 1/1
-[fund] LS100: 491.04 · 200D 476.23 (+3.1%) · 100W 438.57 (+12.0%) · 200W 393.35 (+24.8%)
-wrote 1 funds, 0 new alerts
+[fund] LS100: 478.79 · 200D 476.25 (+0.5%) · 100W 438.32 (+9.2%) · 200W 393.23 (+21.8%)
+wrote 1 funds, 1 new alerts
