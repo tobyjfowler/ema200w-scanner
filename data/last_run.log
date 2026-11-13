@@ -10,7 +10,6 @@
   fetched 100/101
   fetched 101/101
 [nasdaq100] data for 101
-looking up exchange for 1 new symbols
 [sp400] 400 symbols
   fetched 100/400
   fetched 200/400
@@ -20,6 +19,7 @@ looking up exchange for 1 new symbols
 [ftse100] 100 symbols
 HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: BTA.L"}}}
 $BTA.L: No data found, symbol may be delisted
+Failed to get ticker 'BBOX.L' reason: Failed to perform, curl: (28) Operation timed out after 10001 milliseconds with 0 bytes received. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
 
 1 Failed download:
 ['BTA.L']: No data found, symbol may be delisted
@@ -34,7 +34,7 @@ $BTA.L: No data found, symbol may be delisted
 [markets] 25 symbols
   fetched 25/25
 [markets] data for 25
-wrote 1342 stocks, 7329 historic signals, 8 new live signals
+wrote 1343 stocks, 7333 historic signals, 4 new live signals
   fetched 1/1
-[fund] LS100: 488.56 · 200D 476.49 (+2.5%) · 100W 439.3 (+11.2%) · 200W 394.17 (+23.9%)
+[fund] LS100: 494.74 · 200D 476.67 (+3.8%) · 100W 439.42 (+12.6%) · 200W 394.23 (+25.5%)
 wrote 1 funds, 0 new alerts
