@@ -33,7 +33,7 @@ $BTA.L: No data found, symbol may be delisted
 [markets] 25 symbols
   fetched 25/25
 [markets] data for 25
-wrote 1342 stocks, 7331 historic signals, 2 new live signals
+wrote 1340 stocks, 7317 historic signals, 26 new live signals
   fetched 1/1
-[fund] LS100: 494.69 · 200D 476.85 (+3.7%) · 100W 439.42 (+12.6%) · 200W 394.23 (+25.5%)
+[fund] LS100: 494.38 · 200D 477.02 (+3.6%) · 100W 439.42 (+12.5%) · 200W 394.23 (+25.4%)
 wrote 1 funds, 0 new alerts
