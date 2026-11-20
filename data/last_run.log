@@ -10,7 +10,6 @@
   fetched 100/101
   fetched 101/101
 [nasdaq100] data for 101
-looking up exchange for 1 new symbols
 [sp400] 400 symbols
   fetched 100/400
   fetched 200/400
@@ -34,7 +33,7 @@ $BTA.L: No data found, symbol may be delisted
 [markets] 25 symbols
   fetched 25/25
 [markets] data for 25
-wrote 1341 stocks, 7332 historic signals, 22 new live signals
+wrote 1341 stocks, 7333 historic signals, 18 new live signals
   fetched 1/1
-[fund] LS100: 481.16 · 200D 477.17 (+0.8%) · 100W 440.24 (+9.3%) · 200W 395.09 (+21.8%)
+[fund] LS100: 479.92 · 200D 477.2 (+0.6%) · 100W 440.22 (+9.0%) · 200W 395.08 (+21.5%)
 wrote 1 funds, 0 new alerts
