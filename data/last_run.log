@@ -14,8 +14,12 @@
   fetched 100/400
   fetched 200/400
   fetched 300/400
+$TCBI: possibly delisted; no price data found  (period=15y)
+
+1 Failed download:
+['TCBI']: possibly delisted; no price data found  (period=15y)
   fetched 400/400
-[sp400] data for 400
+[sp400] data for 399
 [ftse100] 100 symbols
 HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: BTA.L"}}}
 $BTA.L: No data found, symbol may be delisted
@@ -33,7 +37,7 @@ $BTA.L: No data found, symbol may be delisted
 [markets] 25 symbols
   fetched 25/25
 [markets] data for 25
-wrote 1341 stocks, 7347 historic signals, 28 new live signals
+wrote 1341 stocks, 7351 historic signals, 62 new live signals
   fetched 1/1
-[fund] LS100: 474.3 · 200D 477.17 (-0.6%) · 100W 440.11 (+7.8%) · 200W 395.02 (+20.1%)
+[fund] LS100: 460.78 · 200D 477.0 (-3.4%) · 100W 439.84 (+4.8%) · 200W 394.89 (+16.7%)
 wrote 1 funds, 0 new alerts
