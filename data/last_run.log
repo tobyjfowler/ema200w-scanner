@@ -1,11 +1,14 @@
 [sp500] 503 symbols
+
+1 Failed download:
+['BNY']: OperationalError('database is locked')
   fetched 100/503
   fetched 200/503
   fetched 300/503
   fetched 400/503
   fetched 500/503
   fetched 503/503
-[sp500] data for 503
+[sp500] data for 502
 [nasdaq100] 101 symbols
   fetched 100/101
   fetched 101/101
@@ -14,14 +17,11 @@
   fetched 100/400
   fetched 200/400
   fetched 300/400
-$TCBI: possibly delisted; no price data found  (period=15y)
-
-1 Failed download:
-['TCBI']: possibly delisted; no price data found  (period=15y)
   fetched 400/400
-[sp400] data for 399
+[sp400] data for 400
 [ftse100] 100 symbols
-HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: BTA.L"}}}
+HTTP Error 401: {"finance":{"result":null,"error":{"code":"Unauthorized","description":"Invalid Crumb"}}}
+HTTP Error 401: {"finance":{"result":null,"error":{"code":"Unauthorized","description":"User is unable to access this feature - https://bit.ly/yahoo-finance-api-feedback"}}}
 $BTA.L: No data found, symbol may be delisted
 
 1 Failed download:
@@ -37,7 +37,8 @@ $BTA.L: No data found, symbol may be delisted
 [markets] 25 symbols
   fetched 25/25
 [markets] data for 25
-wrote 1341 stocks, 7351 historic signals, 62 new live signals
+wrote 1340 stocks, 7338 historic signals, 36 new live signals
+Crumb fetch rate-limited (HTTP 429), continuing without crumb
   fetched 1/1
-[fund] LS100: 460.78 · 200D 477.0 (-3.4%) · 100W 439.84 (+4.8%) · 200W 394.89 (+16.7%)
+[fund] LS100: 476.33 · 200D 477.0 (-0.1%) · 100W 440.56 (+8.1%) · 200W 395.7 (+20.4%)
 wrote 1 funds, 0 new alerts
