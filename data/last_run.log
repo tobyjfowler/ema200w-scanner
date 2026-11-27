@@ -1,7 +1,7 @@
 [sp500] 503 symbols
 
 1 Failed download:
-['AON']: OperationalError('database is locked')
+['AMCR']: OperationalError('database is locked')
   fetched 100/503
   fetched 200/503
   fetched 300/503
@@ -36,7 +36,7 @@ $BTA.L: No data found, symbol may be delisted
 [markets] 25 symbols
   fetched 25/25
 [markets] data for 25
-wrote 1340 stocks, 7350 historic signals, 28 new live signals
+wrote 1340 stocks, 7352 historic signals, 3 new live signals
   fetched 1/1
-[fund] LS100: 474.28 · 200D 476.97 (-0.6%) · 100W 440.52 (+7.7%) · 200W 395.68 (+19.9%)
+[fund] LS100: 472.78 · 200D 476.93 (-0.9%) · 100W 440.49 (+7.3%) · 200W 395.67 (+19.5%)
 wrote 1 funds, 0 new alerts
